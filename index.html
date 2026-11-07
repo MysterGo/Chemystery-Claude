@@ -1,0 +1,861 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chemystery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+/* Layout: Die Seite ist eine Schultafel – Holzrahmen um die Spielbühne, darunter die Kreideleiste als HUD. Bewusst nur ein (dunkles) Theme. */
+:root{
+  --tafel:#22352c; --tafel-2:#2b4337; --tafel-3:#18261f;
+  --kreide:#ece8da; --kreide-dim:#a7b3a5; --gelb:#f2cf63; --schaum:#ee6aa6; --holz:#7a5232;
+  --papier:#f7f3e8; --tinte:#1e1e22;
+  --f-display:'Pixelify Sans','Courier New',monospace;
+  --f-logo:'Press Start 2P','Courier New',monospace;
+  --f-text:'VT323','Courier New',monospace;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{background:var(--tafel);color:var(--kreide)}
+body{font-family:var(--f-text);font-size:20px;line-height:1.15;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 28px;
+  background-image:radial-gradient(ellipse at 30% 10%,rgba(255,255,255,.05),transparent 60%),radial-gradient(ellipse at 80% 90%,rgba(255,255,255,.035),transparent 55%)}
+.wrap{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.top{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px}
+.logo{font-family:var(--f-logo);font-weight:400;font-size:clamp(22px,4.6vw,40px);letter-spacing:.02em;margin:0;line-height:1;color:var(--kreide);text-shadow:3px 3px 0 var(--tafel-3)}
+.logo b{color:var(--schaum);font-weight:400}
+.sub{margin:0;color:var(--kreide-dim);font-size:19px}
+.frame{padding:8px;background:linear-gradient(#8f6039,#6c4428);border-radius:3px;box-shadow:0 5px 0 #3d2716,0 14px 30px rgba(0,0,0,.45)}
+.stage{position:relative;width:100%;aspect-ratio:320/192;overflow:hidden;background:#000;user-select:none;-webkit-user-select:none;touch-action:manipulation;cursor:pointer}
+#cv{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges;display:block}
+.tag{position:absolute;left:0;top:0;transform:translate(-50%,-100%);font:var(--tf,14px)/1 var(--f-text);color:#fff;white-space:nowrap;pointer-events:none;z-index:3;text-shadow:1px 0 #000,-1px 0 #000,0 1px #000,0 -1px #000,1px 1px #000}
+.tag.a{color:var(--gelb)}.tag.f{color:#ffb8d8}.tag.s{font-size:calc(var(--tf,14px)*.86);color:#e4ece6}
+.bubble{position:absolute;left:0;top:0;background:#fffdf3;color:#18181b;border:2px solid #18181b;padding:1px 7px 3px;font:var(--bf,18px)/1 var(--f-text);max-width:min(52%,300px);pointer-events:none;box-shadow:2px 2px 0 rgba(0,0,0,.35);z-index:5;white-space:normal}
+.bubble::after{content:"";position:absolute;left:var(--tail,50%);bottom:-6px;width:8px;height:8px;background:inherit;border-right:2px solid #18181b;border-bottom:2px solid #18181b;transform:translateX(-50%) rotate(45deg)}
+.bubble.p{background:#d9ecff}.bubble.s{background:#fff0b3}.bubble.a{background:#ffe1ec}
+.bubble.down::after{bottom:auto;top:-6px;transform:translateX(-50%) rotate(225deg)}
+#hover{position:absolute;left:8px;bottom:6px;padding:1px 7px 2px;background:rgba(15,22,18,.85);color:var(--gelb);font:var(--bf,18px)/1 var(--f-text);pointer-events:none;z-index:4;border:1px solid rgba(242,207,99,.4)}
+#roomTag{position:absolute;left:8px;top:6px;padding:2px 8px;background:rgba(15,22,18,.82);color:var(--kreide);font:600 calc(var(--bf,18px)*.85)/1 var(--f-display);pointer-events:none;z-index:4;transition:opacity .6s}
+#toast{position:absolute;left:50%;top:8px;transform:translateX(-50%);background:var(--gelb);color:#1b1b1b;padding:2px 10px 3px;font:var(--bf,18px)/1 var(--f-text);z-index:8;pointer-events:none;border:2px solid #1b1b1b;transition:opacity .4s}
+#quest{position:absolute;right:6px;top:6px;z-index:6;width:min(38%,215px);background:rgba(246,224,104,.9);border:1px solid rgba(120,96,20,.45);color:#231f12;font:calc(var(--qf,16px)*.9)/1.05 var(--f-text);box-shadow:2px 3px 0 rgba(0,0,0,.28);transition:background .2s}
+#quest:hover{background:rgba(246,224,104,.98)}
+#quest button{all:unset;cursor:pointer;display:flex;justify-content:space-between;width:100%;box-sizing:border-box;padding:4px 8px 3px;font:600 calc(var(--qf,16px)*.78)/1.1 var(--f-display);color:#7a2a1f;letter-spacing:.06em;text-transform:uppercase}
+#quest button:focus-visible{outline:2px solid #231f12}
+#qBody{padding:0 8px 7px;pointer-events:none}
+#qTitle{font-weight:400;color:#14110a;margin-bottom:3px}
+#qBody ul{list-style:none;margin:0 0 4px;padding:0;display:flex;flex-direction:column;gap:1px}
+#qBody li{display:flex;gap:5px}
+#qBody li i{font-style:normal;color:#7a2a1f;width:1em;flex:none}
+#qBody li.ok{color:#7a7050;text-decoration:line-through}
+#qBody li.ok i{color:#2f7a3a}
+#qHint{color:#3a3220;border-top:1px dashed rgba(60,45,10,.45);padding-top:4px;font-size:.92em}
+#verbs{position:absolute;z-index:7;display:flex;flex-direction:column;min-width:120px;background:var(--tafel-3);border:2px solid var(--gelb);box-shadow:3px 3px 0 rgba(0,0,0,.5)}
+#verbs .vh{font:600 15px/1.1 var(--f-display);color:var(--gelb);padding:4px 8px 3px;border-bottom:1px solid rgba(242,207,99,.35)}
+#verbs button{all:unset;cursor:pointer;font:21px/1 var(--f-text);color:var(--kreide);padding:5px 10px}
+#verbs button:hover,#verbs button:focus-visible{background:var(--gelb);color:#1b1b1b}
+.screen{position:absolute;inset:0;z-index:9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:12px;background:radial-gradient(circle at 50% 40%,rgba(34,53,44,.92),rgba(12,18,15,.97));cursor:default}
+.screen h2{font:400 clamp(20px,5.6vw,52px)/1.1 var(--f-logo);margin:0;letter-spacing:.02em;color:var(--kreide);text-shadow:4px 4px 0 #0b120e}
+.screen h2 b{color:var(--schaum);font-weight:400}
+.screen p{margin:0;max-width:52ch;color:var(--kreide-dim);font-size:clamp(16px,2.4vw,22px)}
+.btn{all:unset;cursor:pointer;font:600 clamp(16px,2.6vw,22px)/1 var(--f-display);background:var(--gelb);color:#1b1b1b;padding:9px 18px 10px;border:2px solid #1b1b1b;box-shadow:3px 3px 0 #0b120e}
+.btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 #0b120e}
+.btn:focus-visible{outline:3px solid var(--kreide);outline-offset:2px}
+.btn.ghost{background:transparent;color:var(--kreide);border-color:var(--kreide-dim);box-shadow:none}
+.hud{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 16px;align-items:start}
+.goalbox{min-width:0;display:flex;flex-direction:column;gap:6px}
+.lbl{font:600 13px/1 var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--gelb)}
+#goal{font-size:22px;color:var(--kreide)}
+.inv{display:flex;flex-wrap:wrap;gap:6px}
+.slot{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;width:62px;padding:4px 2px 3px;background:var(--tafel-3);border:2px solid #3b5547;text-align:center}
+.slot canvas{width:40px;height:40px;image-rendering:pixelated}
+.slot span{font-size:14px;line-height:.95;color:var(--kreide-dim);overflow-wrap:anywhere}
+.slot.miss{opacity:.45;cursor:default;border-style:dashed}
+.slot.new{animation:pop .7s}
+.slot:focus-visible{outline:2px solid var(--gelb)}
+@keyframes pop{0%{transform:scale(1.25);border-color:var(--gelb)}100%{transform:scale(1)}}
+.side{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.map{display:flex;gap:3px}
+.map div{font:600 12px/1 var(--f-display);padding:5px 6px;border:1px solid #3b5547;color:var(--kreide-dim);background:var(--tafel-3)}
+.map div.on{background:var(--gelb);color:#1b1b1b;border-color:var(--gelb)}
+.tools{display:flex;gap:6px}
+.tools button{all:unset;cursor:pointer;font:18px/1 var(--f-text);padding:5px 10px;border:1px solid var(--kreide-dim);color:var(--kreide)}
+.tools button:hover,.tools button:focus-visible{background:var(--kreide);color:#1b1b1b}
+.keys{font-size:17px;color:var(--kreide-dim)}
+.keys kbd{font:inherit;color:var(--kreide);border:1px solid #4a6457;padding:0 4px;background:var(--tafel-3)}
+.modal{position:fixed;inset:0;z-index:50;background:rgba(8,12,10,.72);display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.sheet{max-height:100%;overflow:auto;width:min(680px,100%)}
+.board{background:var(--tafel-2);border:6px solid var(--holz);padding:16px 18px 18px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.board h3{font:700 22px/1.1 var(--f-display);margin:0 0 4px;color:var(--gelb);text-wrap:balance}
+.board .role{margin:0 0 10px;color:var(--kreide-dim);font-size:18px}
+.board p{margin:0 0 12px;font-size:21px}
+.choices{display:flex;flex-direction:column;gap:8px}
+.choices button{all:unset;cursor:pointer;font:21px/1.1 var(--f-text);padding:8px 12px;border:2px solid var(--kreide-dim);color:var(--kreide);background:var(--tafel-3)}
+.choices button:hover,.choices button:focus-visible{border-color:var(--gelb);color:var(--gelb)}
+.choices button b{color:var(--gelb);font-weight:400;margin-right:6px}
+.paper{position:relative;background:var(--papier);color:var(--tinte);padding:22px 24px 20px 46px;box-shadow:0 10px 30px rgba(0,0,0,.5);font-size:20px;line-height:1.12}
+.paper::before{content:"";position:absolute;left:14px;top:40px;width:12px;height:12px;border-radius:50%;background:var(--tafel);box-shadow:0 140px 0 var(--tafel),0 280px 0 var(--tafel)}
+.paper .ring{position:absolute;right:26px;top:70px;width:92px;height:92px;border-radius:50%;border:5px solid rgba(110,70,30,.16);pointer-events:none}
+.paper h3{font:700 24px/1.05 var(--f-display);margin:0 0 2px;text-wrap:balance}
+.paper .meta{color:#6b6556;margin:0 0 12px;font-size:18px}
+.paper h4{font:600 14px/1 var(--f-display);letter-spacing:.1em;text-transform:uppercase;margin:14px 0 5px;color:#a2342f}
+.paper ul,.paper ol{margin:0;padding-left:22px}
+.paper li{margin:0 0 3px}
+.paper p{margin:0 0 6px}
+.eq{font-size:23px;padding:6px 10px;background:#ece5d2;display:inline-block;margin:2px 0 4px}
+.warn{display:inline-block;background:#a2342f;color:#fff;padding:0 6px;font-size:17px}
+.sig{margin-top:12px;color:#2f5fa8;font-size:22px;transform:rotate(-2deg);display:inline-block}
+.paper .row{display:flex;justify-content:flex-end;margin-top:16px}
+.kp{width:min(330px,100%);margin:0 auto}
+.kpd{display:flex;gap:6px;justify-content:center;margin:4px 0 12px}
+.kpd span{width:40px;height:48px;display:grid;place-items:center;background:#0f1713;border:2px solid #4a6457;font:32px/1 var(--f-text);color:#7ef0a0}
+.kpd.bad{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.kgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.kgrid button{all:unset;cursor:pointer;text-align:center;font:26px/1 var(--f-text);padding:9px 0;background:var(--tafel-3);border:2px solid #4a6457;color:var(--kreide)}
+.kgrid button:hover,.kgrid button:focus-visible{border-color:var(--gelb)}
+.stats{display:flex;gap:18px;flex-wrap:wrap;margin:8px 0 14px}
+.stats div{display:flex;flex-direction:column}
+.stats b{font:700 28px/1 var(--f-display);color:var(--gelb);font-variant-numeric:tabular-nums}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap}
+.note{font-size:17px;color:var(--kreide-dim);margin:0}
+@media (max-width:640px){.hud{grid-template-columns:minmax(0,1fr)}.side{align-items:flex-start}.keys{display:none}.slot{width:54px}.slot canvas{width:34px;height:34px}}
+@media (prefers-reduced-motion:reduce){.slot.new,.kpd.bad{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <h1 class="logo">CHEM<b>YSTERY</b></h1>
+    <p class="sub">Level 1 · Die verschwundene Anleitung · Otto-Hahn-Gymnasium Herne</p>
+  </header>
+
+  <div class="frame">
+    <div class="stage" id="stage">
+      <canvas id="cv" width="320" height="192" aria-label="Spielwelt"></canvas>
+      <div id="tags"></div>
+      <div id="bubbles"></div>
+      <div id="quest" hidden><button id="qToggle" aria-expanded="true"><span>Quest</span><span id="qArrow">▾</span></button><div id="qBody"><div id="qTitle"></div><ul id="qList"></ul><div id="qHint"></div></div></div>
+      <div id="hover" hidden></div>
+      <div id="roomTag" hidden></div>
+      <div id="toast" hidden></div>
+      <div id="verbs" hidden></div>
+      <div class="screen" id="title">
+        <h2>CHEM<b>YSTERY</b></h2>
+        <p>Herne, 2. Stunde. Florian Jansen hat für die 9a den spektakulärsten Versuch des Jahres geplant: Elefantenzahnpasta. Dumm nur, dass seine Kollegen mal wieder „aufgeräumt“ haben.</p>
+        <button class="btn" id="startBtn">Level 1 starten</button>
+        <p class="note">Pfeiltasten/WASD laufen · E benutzen/reden · Q ansehen · oder einfach klicken</p>
+      </div>
+    </div>
+  </div>
+
+  <section class="hud">
+    <div class="goalbox">
+      <span class="lbl">Aktuelles Ziel</span>
+      <span id="goal">Spiel starten.</span>
+      <div class="inv" id="inv"></div>
+    </div>
+    <div class="side">
+      <div class="map" id="map"></div>
+      <div class="tools"><button id="tipBtn">Tipp</button><button id="sndBtn">Ton: an</button></div>
+      <div class="keys"><kbd>←↑↓→</kbd> laufen · <kbd>E</kbd> benutzen · <kbd>Q</kbd> ansehen</div>
+    </div>
+  </section>
+</div>
+
+<div class="modal" id="modal" hidden><div class="sheet" id="sheet"></div></div>
+
+<script>
+(()=>{
+/* ================= KONFIG: Aussehen der Figuren (#rrggbb) =================
+   h = Größe in Pixeln, tw = Schulterbreite. Haare, Brille, Bart, Kittel, Shirt frei anpassbar. */
+const LOOK_FLORIAN={h:28,tw:8,skin:'#eec39a',hair:'#6b4a2e',glasses:'#25252c',beard:null,coat:'#f3f3ef',shirt:'#5577a6',pants:'#3a4f72',shoes:'#2a2420'};
+const LOOK_PATRICK={h:38,tw:9,skin:'#e9b993',hair:'#2f2620',chinBeard:'#2b211b',shirt:'#fbfbf8',short:true,pants:'#2f415a',shoes:'#e4e4e4'};
+const LOOK_DORO={h:27,tw:8,skin:'#f0c6aa',hair:'#3a2418',curly:true,coat:'#23272f',coatShort:true,zip:'#c9a54a',shirt:'#141414',pants:'#2a2f3a',shoes:'#1e1e1e'};
+const LOOK_BRITTA={h:26,tw:8,skin:'#f2c7a6',hair:'#d8bd84',fringe:true,glasses:'#7d7f86',earring:'#ffffff',shirt:'#5f7fb8',stripes:'#e9eef8',collar:'#e9eef8',pants:'#2c3446',shoes:'#3a2c22'};
+const LOOK_ADRIAN={h:29,tw:8,skin:'#f0c09c',hair:'#5a3a22',tuft:true,glasses:'#9aa4aa',beard:'#b98660',shirt:'#f2f2ee',collar:'#ffffff',pants:'#3b4252',shoes:'#1f1f22'};
+
+const W=320,H=192,FT=46,FB=184,DY0=104,DY1=134;
+const $=s=>document.querySelector(s);
+const stage=$('#stage'),cv=$('#cv'),c=cv.getContext('2d');c.imageSmoothingEnabled=false;
+const R=(g,x,y,w,h,col)=>{g.fillStyle=col;g.fillRect(x,y,w,h)};
+const pick=a=>a[Math.random()*a.length|0];
+const now=()=>performance.now();
+function shade(hex,f=.78){const n=parseInt(hex.slice(1),16);const cl=v=>Math.max(0,Math.min(255,v*f|0));return'#'+((1<<24)|(cl(n>>16)<<16)|(cl(n>>8&255)<<8)|cl(n&255)).toString(16).slice(1)}
+function mkRng(s){return()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function outline(g,x,y,w,h,col){R(g,x,y,w,1,col);R(g,x,y+h-1,w,1,col);R(g,x,y,1,h,col);R(g,x+w-1,y,1,h,col)}
+const FONT={'0':'111101101101111','1':'010110010010111','2':'111001111100111','3':'111001111001111','4':'101101111001001','5':'111100111001111','6':'111100111101111','7':'111001010010010','8':'111101111101111','9':'111101111001111','A':'010101111101101','G':'111100101101111','U':'101101101101111','P':'111101111100100','B':'110101110101110','K':'101110110101101','I':'111010010010111'};
+function txt(g,s,x,y,col){for(const ch of s){const f=FONT[ch];if(f)for(let i=0;i<15;i++)if(f[i]==='1')R(g,x+i%3,y+(i/3|0),1,1,col);x+=4}}
+function ghs(g,x,y,sym){for(let i=0;i<9;i++){const h=4-Math.abs(i-4);R(g,x+4-h,y+i,h*2+1,1,'#d62d2d');if(h>0&&i>0&&i<8)R(g,x+5-h,y+i,h*2-1,1,'#ffffff')}
+  const k='#111';if(sym==='skull'){R(g,x+3,y+3,3,2,k);R(g,x+4,y+5,1,1,k)}else if(sym==='flame'){R(g,x+4,y+2,1,2,k);R(g,x+3,y+4,3,2,k)}else{R(g,x+3,y+3,1,2,k);R(g,x+5,y+3,1,2,k);R(g,x+3,y+5,3,1,k)}}
+
+/* ================= Sound ================= */
+let AC=null,SND=true;
+let NOISE=null;
+function noiseBuf(){if(!NOISE){const len=AC.sampleRate*.08|0;NOISE=AC.createBuffer(1,len,AC.sampleRate);const d=NOISE.getChannelData(0);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3)}return NOISE}
+/* Ein Tastenanschlag einer Schreibmaschine: kurzer Rausch-Klack plus dumpfer Körper */
+function clack(at=0,heavy=false,pitch=1){if(!AC||!SND)return;try{const t=AC.currentTime+at;const src=AC.createBufferSource();src.buffer=noiseBuf();const bp=AC.createBiquadFilter();bp.type='bandpass';bp.frequency.value=(heavy?900:1800+Math.random()*1400)*pitch;bp.Q.value=1.4;const g=AC.createGain();g.gain.setValueAtTime(heavy?.5:.32,t);g.gain.exponentialRampToValueAtTime(.0001,t+(heavy?.09:.035));src.connect(bp).connect(g).connect(AC.destination);src.start(t);src.stop(t+.1);
+ const o=AC.createOscillator(),og=AC.createGain();o.type='triangle';o.frequency.value=(heavy?90:150+Math.random()*40)*pitch;og.gain.setValueAtTime(heavy?.18:.07,t);og.gain.exponentialRampToValueAtTime(.0001,t+.04);o.connect(og).connect(AC.destination);o.start(t);o.stop(t+.06)}catch(e){}}
+/* Die Glocke am Zeilenende – für gefundene Gegenstände */
+function ding(at=.05){if(!AC||!SND)return;try{const t=AC.currentTime+at;[[2350,.07],[3520,.035]].forEach(([f,v])=>{const o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+.9);o.connect(g).connect(AC.destination);o.start(t);o.stop(t+1)})}catch(e){}}
+/* Wagenrücklauf: ratterndes Schieben */
+function carriage(){if(!AC||!SND)return;for(let i=0;i<9;i++)clack(i*.022,false,.55)}
+/* Tippen passend zur Textlänge */
+function typing(len,pitch=1){const n=Math.min(12,3+(len/9|0));let t=0;for(let i=0;i<n;i++){clack(t,false,pitch);t+=.045+Math.random()*.06}}
+function blip(f=660){if(f<160)clack(0,true);else clack(0,false)}
+
+/* ================= Items ================= */
+const NEED=['anleitung','h2o2','ki','spuelmittel','farbe','zylinder','wanne','schutz','gbu'];
+const ITEMS={
+ anleitung:{n:'Anleitung',d:'Elefantenzahnpasta. Klick zum Lesen.'},
+ h2o2:{n:'H₂O₂ 30 %',d:'Die Vorratsflasche Wasserstoffperoxid, w = 30 %. Gefahr: ätzend für Augen und Haut. 50 mL davon brauche ich.'},
+ ki:{n:'KI-Lösung',d:'Gesättigte Kaliumiodid-Lösung. Iodid-Ionen beschleunigen den Zerfall von H₂O₂ enorm.'},
+ spuelmittel:{n:'Spülmittel',d:'Tenside fangen den Sauerstoff als Schaum ein. Aus Patricks Spüle.'},
+ farbe:{n:'Lebensmittel­farbe',d:'Für die Streifen. An der Zylinderwand herunterlaufen lassen, nicht umrühren.'},
+ zylinder:{n:'Mess­zylinder',d:'250 mL, hoch und schmal, damit der Schaum richtig rausschießt.'},
+ wanne:{n:'Auffang­wanne',d:'Damit der Schaum nicht bis zur Tafel kriecht. Theoretisch.'},
+ schutz:{n:'Brille & Hand­schuhe',d:'Schutzbrille und Nitrilhandschuhe. Bei 30 % H₂O₂ nicht verhandelbar.'},
+ gbu:{n:'GBU',d:'Gefährdungsbeurteilung, von Patrick vorbereitet. Klick zum Lesen.'},
+ key_ag:{n:'Schlüssel Ag',d:'Ein Schlüssel mit dem Anhänger „Ag“. Silber, Ordnungszahl 47.'},
+ key_au:{n:'Schlüssel Au',d:'Ein Schlüssel mit dem Anhänger „Au“. Gold, Ordnungszahl 79.'},
+ key_pb:{n:'Schlüssel Pb',d:'Ein Schlüssel mit dem Anhänger „Pb“. Blei, 82. Fühlt sich schwerer an. Einbildung.'},
+};
+const WHERE={anleitung:'laut Post-it: in der Sammlung',h2o2:'Sammlung, Schrank mit Zahlenschloss',ki:'Sammlung, angesetzte Lösungen',spuelmittel:'an einer Spüle',farbe:'Materialraum? Kollegen fragen',zylinder:'eigentlich Schrank 47 …',wanne:'Materialraum, irgendwo oben',schutz:'Materialraum, abgeschlossener Schrank',gbu:'Patrick wollte mich was fragen'};
+const ICON={
+ anleitung:g=>{R(g,3,1,10,14,'#f7f3e8');R(g,4,3,8,1,'#c23b3b');for(let y=5;y<14;y+=2)R(g,4,y,7,1,'#8a8a8a');R(g,9,10,3,3,'rgba(120,80,40,.4)')},
+ h2o2:g=>{R(g,6,1,4,2,'#2f6fb5');R(g,4,3,8,12,'#f2f2ee');R(g,4,14,8,1,'#c9c9c4');ghs(g,4,5,'corr')},
+ ki:g=>{R(g,6,1,4,2,'#222');R(g,4,3,8,12,'#6b3b16');R(g,4,7,8,7,'#f4f1e6');txt(g,'KI',5,8,'#222')},
+ spuelmittel:g=>{R(g,6,1,3,2,'#e9e9e9');R(g,5,3,6,12,'#3fae5a');R(g,6,4,2,9,'#7fd590');R(g,5,9,6,3,'#f2cf63')},
+ farbe:g=>{[['#d83b4f',1],['#f2c43a',6],['#2f7fd1',11]].forEach(([cl,x])=>{R(g,x+1,3,2,3,'#f2f2f2');R(g,x,6,4,8,cl)})},
+ zylinder:g=>{R(g,6,1,4,13,'#cfe6f2');R(g,7,1,2,13,'#eef8fc');for(let y=3;y<13;y+=2)R(g,6,y,2,1,'#5d7c8c');R(g,4,14,8,2,'#9fbecd')},
+ wanne:g=>{R(g,1,6,14,7,'#c9cfd3');R(g,2,7,12,4,'#a3abb0');R(g,1,6,14,1,'#e3e7ea')},
+ schutz:g=>{R(g,1,3,14,2,'#2f6fb5');R(g,2,4,5,4,'#bfe3f2');R(g,9,4,5,4,'#bfe3f2');R(g,7,5,2,1,'#2f6fb5');R(g,4,10,7,5,'#5b8de0');R(g,4,8,1,3,'#5b8de0');R(g,6,8,1,2,'#5b8de0');R(g,8,8,1,2,'#5b8de0');R(g,10,8,1,3,'#5b8de0')},
+ gbu:g=>{R(g,3,2,10,13,'#a87a46');R(g,4,4,8,10,'#f7f3e8');R(g,6,1,4,3,'#9aa1a6');for(let y=6;y<13;y+=2)R(g,5,y,6,1,'#8a8a8a');R(g,5,12,4,1,'#2f6fb5')},
+ key:g=>{R(g,1,5,6,6,'#d8b84a');R(g,3,7,2,2,'#18261f');R(g,7,7,7,2,'#d8b84a');R(g,11,9,1,2,'#d8b84a');R(g,13,9,1,2,'#d8b84a')},
+};
+
+/* ================= Zeichen-Helfer: Möbel ================= */
+let T=0,shakeT=0;
+function fenster(g,x,y,w,h,tower){R(g,x-2,y-2,w+4,h+4,'#efeee6');R(g,x,y,w,h,'#a9d2ee');R(g,x,y+(h*.55|0),w,h-(h*.55|0),'#c3e0f2');
+ R(g,x+4,y+4,10,3,'#f4f8fb');R(g,x+7,y+2,6,2,'#f4f8fb');R(g,x,y+h-4,w,4,'#7a9a6a');R(g,x+3,y+h-7,5,3,'#6a8a5c');
+ if(tower){const tx=x+w-20,by=y+h-4,col='#57616d';R(g,tx,by-13,2,13,col);R(g,tx+9,by-13,2,13,col);R(g,tx,by-13,11,2,col);for(let i=0;i<4;i++)R(g,tx+2+i*2,by-11+i*3,1,1,col);
+  R(g,tx+1,by-17,4,4,col);R(g,tx+6,by-17,4,4,col);R(g,tx+2,by-16,2,2,'#a9d2ee');R(g,tx+7,by-16,2,2,'#a9d2ee');for(let i=0;i<9;i++)R(g,tx-2-i,by-12+i,1,1,col)}
+ R(g,x+(w>>1)-1,y,2,h,'#efeee6');R(g,x,y+(h>>1)-1,w,2,'#efeee6');R(g,x-3,y+h+2,w+6,2,'#bdb7a6')}
+function tafel(g,x,y,w,h,seed,note){R(g,x-2,y-2,w+4,h+4,'#7a5232');R(g,x,y,w,h,'#2f5a46');R(g,x,y,w,1,'#3d6b55');
+ const r=mkRng(seed);for(let row=0;row<4;row++){let cx=x+5;const cy=y+4+row*5;while(cx<x+w-14){const l=2+(r()*7|0);if(r()<.82)R(g,cx,cy,l,1,'rgba(236,236,226,.75)');cx+=l+2}}
+ if(note){R(g,x+w-30,y+h-8,26,6,'rgba(236,236,226,.22)');outline(g,x+w-30,y+h-8,26,6,'rgba(236,236,226,.7)')}
+ R(g,x-2,y+h+2,w+4,2,'#5f3d23');R(g,x+10,y+h+1,4,1,'#f2f2ea');R(g,x+18,y+h+1,3,1,'#f2d06a')}
+function pse(g,x,y){R(g,x,y,40,24,'#f4f1e6');outline(g,x,y,40,24,'#8e8775');R(g,x+2,y+1,20,1,'#a2342f');
+ for(let r=0;r<7;r++)for(let k=0;k<18;k++){const ok=r===0?(k===0||k===17):r<3?(k<2||k>=12):true;if(!ok)continue;const col=k<2?'#e38273':k<12?'#86b6da':k===17?'#9ad08f':'#f0cc63';R(g,x+2+k*2,y+3+r*2,2,2,col);R(g,x+2+k*2,y+3+r*2,1,1,shade(col,1.12))}
+ R(g,x+8,y+19,28,1,'#c9a3d8');R(g,x+8,y+21,28,1,'#bf96cf')}
+function glueck(g,x,y){R(g,x,y,18,20,'#1e1e1e');outline(g,x,y,18,20,'#555');const w='#e8e2cc';for(let i=0;i<9;i++){R(g,x+4+i,y+4+i,1,1,w);R(g,x+13-i,y+4+i,1,1,w)}R(g,x+2,y+3,4,2,w);R(g,x+12,y+3,4,2,w);R(g,x+4,y+16,10,1,'#c9a54a')}
+function abzug(g,x,y,w,h,inner){R(g,x,y,w,h,'#c2c9cc');outline(g,x,y,w,h,'#4b545b');R(g,x+2,y+2,w-4,5,'#8c969b');R(g,x+4,y+3,10,3,'#e8b63a');
+ const wy=y+9,wh=h-26;R(g,x+3,wy,w-6,wh,'#334046');inner&&inner(g,x+6,wy+wh);R(g,x+3,wy,w-6,wh,'rgba(160,210,230,.18)');
+ for(let i=0;i<6;i++)R(g,x+6+i,wy+2+i*2,1,2,'rgba(255,255,255,.35)');R(g,x+3,wy+wh-3,w-6,1,'#e6ebee');R(g,x+3,wy+wh,w-6,4,'#2a2d33');
+ R(g,x,y+h-13,w,13,'#8c979f');R(g,x,y+h-13,w,1,'#aab4bb');for(let i=1;i<3;i++)R(g,x+(i*w/3|0),y+h-12,1,11,'#6b767d');R(g,x,y+h,w,2,'rgba(0,0,0,.18)')}
+function bench(g,x,y,w){R(g,x,y,w,8,'#2a2d33');R(g,x,y,w,1,'#4a4f58');for(let i=x+10;i<x+w-8;i+=26){R(g,i,y+3,2,2,'#e2b53c');R(g,i+4,y+3,2,2,'#5aa0d8')}
+ R(g,x,y+8,w,8,'#7b8996');R(g,x,y+8,w,1,'#9aa6b1');R(g,x,y+15,w,1,'#3a424a');for(let i=1;i<4;i++)R(g,x+(i*w/4|0),y+9,1,6,'#5f6c78');R(g,x,y+16,w,2,'rgba(0,0,0,.16)')}
+function tdesk(g,x,y,w){R(g,x,y,w,10,'#2a2d33');R(g,x,y,w,1,'#4a4f58');R(g,x+w-22,y+2,14,6,'#9aa4ab');R(g,x+w-21,y+3,12,4,'#6c767d');R(g,x+w-16,y+1,2,2,'#c9d1d6');
+ R(g,x+8,y+3,2,2,'#e2b53c');R(g,x+14,y+3,2,2,'#e2b53c');R(g,x+20,y+3,2,2,'#5aa0d8');
+ R(g,x,y+10,w,10,'#6f7f8d');R(g,x,y+10,w,1,'#93a1ad');R(g,x,y+19,w,1,'#39424b');for(let i=1;i<4;i++)R(g,x+(i*w/4|0),y+11,1,8,'#56636f');
+ for(let i=0;i<4;i++)R(g,x+(i*w/4|0)+(w/8|0)-2,y+13,4,1,'#c4ccd2');R(g,x,y+20,w,2,'rgba(0,0,0,.18)')}
+function labtable(g,x,y,w){R(g,x,y,w,18,'#e9ecea');for(let i=x;i<x+w;i+=6)R(g,i,y,1,18,'#cdd3d0');for(let j=y;j<y+18;j+=6)R(g,x,j,w,1,'#cdd3d0');
+ R(g,x,y,w,2,'#2a2d33');R(g,x,y,2,18,'#2a2d33');R(g,x+w-2,y,2,18,'#2a2d33');R(g,x,y+17,w,1,'#2a2d33');
+ R(g,x+w-28,y+5,18,10,'#9aa4ab');R(g,x+w-27,y+6,16,8,'#6c767d');R(g,x+w-20,y+2,2,4,'#c9d1d6');
+ for(let i=0;i<4;i++){R(g,x+10+i*24,y+3,2,2,'#e2b53c');R(g,x+14+i*24,y+3,2,2,'#5aa0d8');R(g,x+18+i*24,y+3,3,2,'#d84a3a')}
+ R(g,x,y+18,w,12,'#6f7f8d');R(g,x,y+18,w,1,'#93a1ad');R(g,x,y+29,w,1,'#39424b');for(let i=1;i<6;i++)R(g,x+(i*w/6|0),y+19,1,10,'#56636f');for(let i=0;i<6;i++)R(g,x+(i*w/6|0)+(w/12|0)-2,y+22,4,1,'#c4ccd2');R(g,x,y+30,w,2,'rgba(0,0,0,.18)')}
+function chairSeat(g,sx,sy){R(g,sx-5,sy-11,10,5,'#d27a3a');R(g,sx-5,sy-11,10,1,'#e89a5a')}
+function chairBack(g,sx,sy){R(g,sx-5,sy-6,10,5,'#c4652a');R(g,sx-5,sy-6,10,1,'#e08a48');R(g,sx-5,sy-2,10,1,'#8a4418');R(g,sx-4,sy-1,1,2,'#333');R(g,sx+3,sy-1,1,2,'#333')}
+function cabinet(g,x,y,w,h,o={}){const col=o.col||'#c8ced2';R(g,x,y,w,h,col);R(g,x,y,w,4,shade(col,1.07));outline(g,x,y,w,h,'#4b545b');R(g,x+1,y+4,w-2,1,'#7b858c');
+ if(o.open){R(g,x+2,y+6,w-4,h-9,'#2b3034');for(let sy=y+18;sy<y+h-4;sy+=13)R(g,x+2,sy,w-4,1,'#6e777d');o.inner&&o.inner(g);R(g,x-3,y+6,3,h-9,col);R(g,x+w,y+6,3,h-9,col);outline(g,x-3,y+6,3,h-9,'#4b545b');outline(g,x+w,y+6,3,h-9,'#4b545b')}
+ else{R(g,x+(w>>1),y+5,1,h-7,'#5c656c');R(g,x+(w>>1)-3,y+(h>>1),1,5,'#3a4046');R(g,x+(w>>1)+3,y+(h>>1),1,5,'#3a4046')}
+ if(o.label){R(g,x+(w>>1)-6,y+8,13,7,'#f4f4f0');outline(g,x+(w>>1)-6,y+8,13,7,'#555');txt(g,o.label,x+(w>>1)-3,y+9,'#222')}
+ if(o.sign==='gift')ghs(g,x+(w>>1)-4,y+22,'skull');if(o.sign==='ox'){ghs(g,x+(w>>1)-4,y+18,'flame');R(g,x+4,y+30,6,8,'#202528');for(let i=0;i<3;i++)for(let j=0;j<2;j++)R(g,x+5+j*3,y+31+i*2,1,1,'#9fe0b0');if(!o.open)R(g,x+w-11,y+27,7,7,'#f5df5a')}
+ if(o.sign==='brille'){R(g,x+(w>>1)-4,y+24,9,9,'#2f6fb5');R(g,x+(w>>1)-3,y+27,3,2,'#fff');R(g,x+(w>>1)+1,y+27,3,2,'#fff')}
+ R(g,x,y+h,w,2,'rgba(0,0,0,.16)')}
+function bottle(g,x,y,liq,glass='rgba(220,235,240,.85)',cap='#2b2b2b'){R(g,x+1,y,2,2,cap);R(g,x,y+2,4,6,glass);R(g,x,y+4,4,4,liq)}
+function boxes(g,x,y,w,h){R(g,x,y,w,h,'#b4874f');R(g,x,y,w,3,'#c99a5e');outline(g,x,y,w,h,'#6e4f2b');R(g,x+(w>>1)-1,y,3,h,'#d8c08c')}
+function kanister(g,x,y,lab){R(g,x,y,12,16,'#eceee9');R(g,x,y,12,2,'#ffffff');outline(g,x,y,12,16,'#8a8f8c');R(g,x+8,y-3,3,3,'#3a6fb0');R(g,x+1,y+5,10,6,lab);R(g,x+2,y+7,8,1,'#fff');R(g,x,y+16,12,2,'rgba(0,0,0,.16)')}
+
+/* ================= Personen ================= */
+function paintPerson(g,x,y,dir,step,L,sit){
+ const legF=Math.round((L.h-8)*.42),torsoH=L.h-8-legF,legH=sit?0:legF;
+ const by=y-legH,ty=by-torsoH,hy=ty-8,tw=L.tw||8,tx=x-(tw>>1),side=dir==='right',dark='#1c1c22';
+ if(!sit){g.fillStyle='rgba(0,0,0,.22)';g.fillRect(x-5,y-1,10,2)}
+ if(!sit){if(side){const a=step===1?1:step===2?-1:0;R(g,x-2-a,by,3,legH,shade(L.pants,.8));R(g,x-2-a,y-1,4,1,L.shoes);R(g,x-1+a,by,3,legH,L.pants);R(g,x-1+a,y-1,4,1,L.shoes)}
+  else{const l1=step===1?1:0,l2=step===2?1:0;R(g,x-3,by,3,legH-l1,L.pants);R(g,x-3,y-1-l1,3,1,L.shoes);R(g,x,by,3,legH-l2,L.pants);R(g,x,y-1-l2,3,1,L.shoes)}}
+ R(g,tx,ty,tw,torsoH,L.shirt);
+ if(L.stripes)for(let i=tx+1;i<tx+tw;i+=2)R(g,i,ty+1,1,torsoH-1,L.stripes);
+ if(L.coat){R(g,tx,ty,tw,torsoH+(sit||L.coatShort?0:3),L.coat);if(dir==='down'){R(g,x-1,ty,2,4,L.shirt);R(g,x-1,ty+4,1,torsoH-(L.coatShort?4:1),L.zip||shade(L.coat,.86))}else if(dir==='up')R(g,x-1,ty+3,1,torsoH-3,shade(L.coat,.88))}
+ if(L.collar&&dir==='down'){R(g,x-3,ty,2,2,L.collar);R(g,x+1,ty,2,2,L.collar)}
+ const top=L.coat||L.shirt;R(g,tx+tw-1,ty,1,torsoH,shade(top,.82));R(g,tx,ty,tw,1,shade(top,.92));
+ const sw=sit?0:(step===1?1:step===2?-1:0),al=torsoH-2;
+ const arm=(ax,ay)=>{if(L.short){R(g,ax,ay,2,3,top);R(g,ax,ay+3,2,al-3,L.skin)}else R(g,ax,ay,2,al,top);R(g,ax,ay+al,2,2,L.skin)};
+ if(side)arm(x-1+sw,ty+1);else{arm(tx-2,ty+1+sw);arm(tx+tw,ty+1-sw)}
+ const hx=x-4;
+ if(L.curly){if(dir==='up')R(g,hx-2,hy,12,13,L.hair);else if(dir==='down'){R(g,hx-2,hy+1,2,11,L.hair);R(g,hx+8,hy+1,2,11,L.hair);for(let i=0;i<5;i++){R(g,hx-3,hy+2+i*2,1,1,L.hair);R(g,hx+10,hy+3+i*2,1,1,L.hair)}}else{R(g,hx-2,hy,6,12,L.hair);for(let i=0;i<5;i++)R(g,hx-3,hy+2+i*2,1,1,L.hair)}}
+ R(g,hx,hy,8,8,L.skin);R(g,hx+7,hy+1,1,7,shade(L.skin,.86));
+ if(dir==='up'){R(g,hx,hy,8,7,L.hair);if(L.long)R(g,hx,hy+7,8,4,L.hair);if(L.curly)R(g,hx-1,hy+7,10,5,L.hair)}
+ else if(dir==='down'){R(g,hx,hy,8,2,L.hair);R(g,hx,hy+2,1,2,L.hair);R(g,hx+7,hy+2,1,2,L.hair);if(L.fringe)R(g,hx+1,hy+2,4,1,L.hair);
+  if(L.long){R(g,hx-1,hy+1,1,9,L.hair);R(g,hx+8,hy+1,1,9,L.hair)}
+  R(g,hx+2,hy+4,1,1,dark);R(g,hx+5,hy+4,1,1,dark);
+  if(L.glasses){const q=L.glasses;R(g,hx+1,hy+3,6,1,q);R(g,hx+1,hy+4,1,1,q);R(g,hx+3,hy+4,2,1,q);R(g,hx+6,hy+4,1,1,q)}
+  if(L.earring){R(g,hx-1,hy+5,1,1,L.earring);R(g,hx+8,hy+5,1,1,L.earring)}
+  if(L.beard){R(g,hx,hy+5,1,2,L.beard);R(g,hx+7,hy+5,1,2,L.beard);R(g,hx+1,hy+7,6,1,L.beard);R(g,hx+2,hy+6,4,1,'#ffffff')}else R(g,hx+3,hy+6,2,1,shade(L.skin,.72))}
+ else{R(g,hx,hy,8,2,L.hair);R(g,hx,hy+2,4,3,L.hair);if(L.long)R(g,hx-1,hy+1,4,9,L.hair);R(g,hx+5,hy+4,1,1,dark);R(g,hx+8,hy+4,1,1,L.skin);
+  if(L.glasses){R(g,hx+4,hy+3,4,1,L.glasses);R(g,hx+4,hy+4,1,1,L.glasses);R(g,hx+7,hy+4,1,1,L.glasses);R(g,hx+2,hy+3,2,1,L.glasses)}
+  if(L.earring)R(g,hx+3,hy+5,1,1,L.earring);
+  if(L.beard){R(g,hx+3,hy+6,5,2,L.beard);R(g,hx+6,hy+6,2,1,'#ffffff')}else R(g,hx+6,hy+6,2,1,shade(L.skin,.72))}
+ if(L.chinBeard&&dir!=='up'){const b=L.chinBeard;if(dir==='down'){R(g,hx+1,hy+5,1,2,b);R(g,hx+6,hy+5,1,2,b);R(g,hx+1,hy+6,6,1,b);R(g,hx+3,hy+6,2,1,'#8a4a3a');R(g,hx+1,hy+7,6,2,b);R(g,hx+2,hy+9,4,2,b);R(g,hx+3,hy+11,2,1,b)}
+  else{R(g,hx+3,hy+5,5,2,b);R(g,hx+7,hy+6,1,1,'#8a4a3a');R(g,hx+3,hy+7,5,2,b);R(g,hx+4,hy+9,4,2,b);R(g,hx+5,hy+11,2,1,b)}}
+ if(L.tuft){R(g,hx+2,hy-1,4,1,L.hair);R(g,hx+5,hy-2,1,1,L.hair)}
+ if(L.cap){R(g,hx-1,hy-1,10,3,L.cap);if(dir==='down')R(g,hx,hy+2,8,1,shade(L.cap,.7));else if(side)R(g,hx+7,hy+1,4,1,shade(L.cap,.7))}
+ if(L.bun)R(g,hx+3,hy-2,3,2,L.hair)}
+function drawPerson(g,e){const x=Math.round(e.x),y=Math.round(e.y),step=e.moving?(Math.floor(e.anim*8)%2)+1:0;
+ if(e.dir==='left'){g.save();g.translate(2*x,0);g.scale(-1,1);paintPerson(g,x,y,'right',step,e.look,e.sit);g.restore()}else paintPerson(g,x,y,e.dir,step,e.look,e.sit)}
+function personTop(e){const L=e.look,legF=Math.round((L.h-8)*.42),torso=L.h-8-legF;return e.y-(e.sit?0:legF)-torso-8-(L.cap||L.tuft?1:0)}
+function talkIcon(g,x,y){y=Math.round(y+Math.sin(T*3+x)*.8);R(g,x-4,y-1,9,6,'#1b1b1b');R(g,x-3,y,7,4,'#ffffff');R(g,x-2,y+2,1,1,'#1b1b1b');R(g,x,y+2,1,1,'#1b1b1b');R(g,x+2,y+2,1,1,'#1b1b1b');R(g,x-2,y+5,2,1,'#1b1b1b');R(g,x-3,y+6,1,1,'#1b1b1b')}
+
+/* ================= Zustand ================= */
+let S,ROOMS,ENTS,player,patrick,doro,britta,adrian,seq,timers,foam,grid,trans,bubbles={},tags={},hoverHs=null;
+const has=id=>S.inv.includes(id);
+function setFlag(k,v=true){S.flags[k]=v;renderQuest()}
+
+/* ================= Räume ================= */
+function addRoom(id,o){ROOMS[id]=Object.assign({id,props:[],hs:[],spots:[]},o)}
+function P(rm,o){rm.props.push(o)}
+function HS(rm,o){rm.hs.push(o)}
+function seatsFor(rm,rows,xs){const seats=[];for(const sy of rows)for(const sx of xs){seats.push({x:sx,y:sy});P(rm,{sort:sy-12,paint:g=>chairSeat(g,sx,sy)});P(rm,{sort:sy+.2,solid:[sx-5,sy-11,10,11],paint:g=>chairBack(g,sx,sy)})}return seats}
+
+function buildRooms(){
+ ROOMS={};
+ /* ---------- Chemieraum 1 ---------- */
+ addRoom('cr1',{name:'Chemieraum 1',short:'Chemie 1',right:'sammlung',flurX:40,seed:11,floor:'lino'});
+ const r1=ROOMS.cr1;
+ P(r1,{sort:62,solid:[12,46,40,16],paint:g=>abzug(g,12,10,40,52,null)});
+ P(r1,{sort:-1,paint:g=>pse(g,58,10)});
+ P(r1,{sort:-1,paint:g=>tafel(g,104,6,112,30,5,true)});
+ P(r1,{sort:-1,paint:g=>glueck(g,222,10)});
+ P(r1,{sort:-1,paint:g=>fenster(g,248,6,56,22,true)});
+ P(r1,{sort:86,solid:[76,58,136,28],paint:g=>{labtable(g,76,56,136);
+   if(S.flags.setup){R(g,126,60,36,9,'#c9cfd3');R(g,127,61,34,6,'#a3abb0');R(g,141,40,6,24,'rgba(210,235,245,.9)');R(g,142,40,2,24,'#eef8fc');R(g,139,63,10,2,'#9fbecd');R(g,141,54,6,9,'#e7d8e6');
+    if(S.flags.tipped){R(g,160,63,12,5,'#f2f2ee');R(g,172,64,3,3,'#2f6fb5')}else{R(g,170,52,7,12,'#f2f2ee');R(g,171,50,4,2,'#2f6fb5');ghs(g,169,55,'corr')}
+    R(g,116,58,4,7,'#6b3b16');R(g,116,57,4,1,'#222');R(g,104,60,8,5,'#2f6fb5')}}});
+ P(r1,{sort:74,solid:[236,56,64,16],paint:g=>{tdesk(g,236,54,64);R(g,244,55,14,8,'#3c4148');R(g,245,56,12,6,'#3f8fd6');R(g,246,57,4,2,'#9fd0f5');R(g,259,56,1,6,'#c9ced2');if(!S.flags.setup){R(g,290,56,6,5,'#f5df5a');R(g,291,57,4,1,'#9a8a3a')}}});
+ P(r1,{sort:180,solid:[14,166,10,14],paint:g=>{R(g,14,166,10,14,'#5c6670');R(g,14,166,10,2,'#7c8790');R(g,15,168,8,1,'#2b3036');R(g,14,180,10,2,'rgba(0,0,0,.18)')}});
+ for(const by of [108,144]){P(r1,{sort:by+16,solid:[28,by+2,104,14],paint:g=>bench(g,28,by,104)});P(r1,{sort:by+16,solid:[188,by+2,104,14],paint:g=>bench(g,188,by,104)})}
+ r1.seats=seatsFor(r1,[136,172],[54,106,214,266]);
+ r1.spots=[{x:60,y:98},{x:230,y:96},{x:18,y:140},{x:302,y:150},{x:160,y:140},{x:160,y:176},{x:300,y:96},{x:120,y:98}];
+ HS(r1,{name:'Abzug',r:[12,10,40,52],look:()=>'Mein Abzug. Blitzblank, weil ich ihn heute Morgen geputzt habe. Patrick wäre stolz. Würde er aber nie sagen.',verb:()=>'Einschalten',act:()=>{blip(110,.4,.05,'sawtooth');sayF('Brummt, saugt, läuft. So muss das! Heute läuft alles.')}});
+ HS(r1,{name:'Periodensystem',r:[58,10,40,24],look:()=>'Ordnungszahlen, falls jemand fragt: K 19, Ag 47, I 53, Au 79, Pb 82. Weiß ich natürlich auswendig. Ich guck nur zur Sicherheit.',verb:()=>'Studieren',act:()=>sayF('Kalium 19, Iod 53, Silber 47, Gold 79, Blei 82. Das schönste Poster der Schule. Fight me.')});
+ HS(r1,{name:'Tafel',r:[104,6,112,32],look:()=>'Unten rechts steht „Bitte nicht wischen!“. Darüber: nichts. Seit drei Wochen.',verb:()=>'Wischen',act:()=>sayF('Ich wisch das nicht. Am Ende ist das Patricks Lebenswerk.')});
+ HS(r1,{name:'Plakat „Glück auf“',r:[222,10,18,20],look:()=>'Schlägel und Eisen. Die Zechen in Herne sind zu, aber in der Sammlung sieht es aus wie unter Tage.'});
+ HS(r1,{name:'Fenster',r:[248,6,56,24],look:()=>'Schulhof, Förderturm, Nieselregen. Perfektes Wetter für Chemie drinnen.',verb:()=>'Öffnen',act:()=>sayF('Kippen ja, öffnen nein. Brandschutz. Und Leon würde sonst rausklettern.')});
+ HS(r1,{name:'Großer Labortisch',r:[76,56,136,30],look:()=>S.flags.setup?'Hier passiert’s. Hier ist es passiert.':'Mein großer Demonstrationstisch. Gefliest, Gas, Wasser, Strom. Hier wird gleich Geschichte geschrieben. Mit Schaum.',verb:()=>S.flags.setup?null:'Versuch aufbauen',act:tischAct});
+ HS(r1,{name:'Lehrerpult',r:[236,54,64,18],look:()=>has('anleitung')?'Mein Pult. Mit meinem Surface. Alles, was ein Mensch braucht.':'Mein Pult. Hier lag meine Anleitung! Jetzt liegt hier nur noch mein Surface.'});
+ HS(r1,{name:'Surface',r:[243,54,17,9],look:()=>'Mein Surface. Stift dabei, Akku voll, Tafelbild fertig. Andere haben ein Haustier, ich hab das hier.',verb:()=>'Benutzen',act:()=>sayF('Tafelbild ist fertig, die Animation zur Katalyse auch. Mit Stift gezeichnet. Versucht das mal auf einem iPad. Doch, geht. Aber nicht so schön.')});
+ HS(r1,{name:'Post-it',r:[288,54,10,8],show:()=>!S.flags.setup,look:()=>{setFlag('hint');return'„Hab deine Anleitung in Sicherheit gebracht → Sammlung. P.“ – In Sicherheit gebracht. Das heißt hier: unter einen Stapel Kaffeetassen.'},verb:()=>'Nehmen',act:()=>{setFlag('hint');sayF('Den Zettel? Nein. Den heb ich auf. Als Beweismittel.')}});
+ HS(r1,{name:'Papierkorb',r:[14,164,10,16],look:()=>'Ein Papierkorb.',verb:()=>'Durchsuchen',act:()=>sayF('Energydrinkdosen, ein halbes Arbeitsblatt, keine Anleitung. Hab nachgeguckt. Zweimal.')});
+ HS(r1,{name:'Tür zum Flur',r:[40,180,28,12],look:()=>'Die Tür zum Flur.',verb:()=>'Rausgehen',act:()=>sayF('Jetzt raus? Nee. Die 9a wartet, und ich hab einen Plan.')});
+
+ /* ---------- Sammlung ---------- */
+ addRoom('sammlung',{name:'Chemikaliensammlung',short:'Sammlung',left:'cr1',right:'material',flurX:140,seed:23,floor:'grey'});
+ const r2=ROOMS.sammlung;
+ P(r2,{sort:60,solid:[12,46,84,14],paint:g=>{R(g,12,8,2,52,'#7d8489');R(g,94,8,2,52,'#7d8489');
+   const rows=[[20,['#7a2a8a','#3f7fd1','#e9eef0','#e9eef0','#c4842a','#e9eef0']],[34,['#e9eef0','#3fae5a','#e9eef0','#d83b4f','#e9eef0','#7a2a8a']],[48,['#f2cf63','#e9eef0','#3f7fd1','#e9eef0','#e9eef0','#e9eef0']]];
+   for(const [by,cols] of rows){R(g,12,by+9,84,2,'#9aa1a6');cols.forEach((cl,i)=>{const bx=16+i*13;if(by===34&&i===2&&has('ki'))return;bottle(g,bx,by,cl,(by===34&&i===2)?'#6b3b16':undefined)})}
+   R(g,12,8,84,2,'#9aa1a6');R(g,12,60,84,2,'rgba(0,0,0,.16)')}});
+ P(r2,{sort:-1,paint:g=>{R(g,102,12,16,18,'#8a5c37');outline(g,102,12,16,18,'#5a3a22');['ag','au','pb'].forEach((k,i)=>{const kx=105+i*5;R(g,kx,15,1,1,'#ddd');if(S.key!==k){R(g,kx-1,16,3,3,'#d8b84a');R(g,kx,19,1,4,'#d8b84a');R(g,kx-1,23,3,3,['#c9ccd0','#f2cf63','#6c7178'][i])}})}});
+ P(r2,{sort:62,solid:[124,46,36,16],paint:g=>cabinet(g,124,6,36,56,{col:'#cfd3cf',sign:'gift'})});
+ P(r2,{sort:62,solid:[166,46,38,16],paint:g=>cabinet(g,166,6,38,56,{col:'#d9d5c3',sign:'ox',open:S.flags.chemOpen,inner:g=>{bottle(g,172,22,'#e9e9e9','#f2f2ee','#2f6fb5');bottle(g,180,22,'#e9e9e9','#f2f2ee','#2f6fb5');if(!has('h2o2'))bottle(g,188,22,'#e9e9e9','#f2f2ee','#2f6fb5');bottle(g,174,35,'#c4842a');bottle(g,186,35,'#e9eef0')}})});
+ P(r2,{sort:62,solid:[214,46,90,16],paint:g=>abzug(g,214,8,90,54,(g,x,y)=>{R(g,x,y-8,6,8,'rgba(200,230,240,.85)');R(g,x+2,y-12,2,4,'rgba(200,230,240,.85)');R(g,x+1,y-5,4,5,'#79cf89');
+   for(let i=0;i<3;i++){const ph=(T*1.4+i*.33)%1;R(g,x+2+(i%2),y-5-(ph*12|0),1,1,'#efffef')}
+   R(g,x+14,y-3,16,3,'#d8e4ea');R(g,x+16,y-5,3,2,'#fff');R(g,x+21,y-6,3,3,'#f2f7fa');R(g,x+26,y-4,2,2,'#fff');
+   R(g,x+40,y-16,16,10,'#f4f1e6');R(g,x+41,y-14,14,1,'#c23b3b');R(g,x+41,y-12,10,1,'#555');R(g,x+41,y-10,12,1,'#555');
+   R(g,x+64,y-10,5,10,'rgba(200,230,240,.85)');R(g,x+64,y-6,5,6,'#e3c84a')})});
+ P(r2,{sort:127,solid:[92,100,136,26],paint:g=>{R(g,92,96,136,22,'#d6c9a6');R(g,92,96,136,1,'#ede2c6');R(g,92,118,136,6,'#9b8a66');R(g,92,124,136,1,'#5e5340');R(g,94,124,3,3,'#5e5340');R(g,223,124,3,3,'#5e5340');R(g,92,127,136,2,'rgba(0,0,0,.16)');
+   R(g,102,104,22,10,'#f4f2ec');R(g,103,102,20,3,'#e8e6de');outline(g,102,102,22,12,'#b9b4a6');if(!has('anleitung')){R(g,121,108,6,4,'#f7f3e8');R(g,122,109,4,1,'#c23b3b')}
+   R(g,128,100,6,7,'#f2f2ee');R(g,129,100,4,2,'#5a3a22');R(g,134,102,2,3,'#f2f2ee');R(g,108,98,6,6,'#ffffff');R(g,109,98,4,2,'#4a2e18');
+   R(g,138,108,8,5,'#d6a35a');R(g,140,109,2,1,'#7fa35a');
+   R(g,150,103,12,9,'#2b2b2e');R(g,151,104,10,7,'#7fb6e8');R(g,152,105,3,2,'#d6ecfb');R(g,149,102,14,1,'#e8a6d8');
+   bottle(g,170,100,'#6a1f7a','rgba(220,235,240,.85)','#222');R(g,170,108,5,2,'rgba(0,0,0,.15)');
+   R(g,184,104,10,7,'#e8c24a');R(g,184,104,10,2,'#c43b2b');
+   R(g,204,90,16,20,'#2a2a2e');R(g,206,92,12,4,'#444');R(g,206,100,10,8,'rgba(190,220,235,.6)');R(g,207,104,8,4,'#4a2e18');R(g,216,93,2,2,(T*2|0)%2?'#ff4040':'#7a1f1f')}});
+ P(r2,{sort:182,solid:[14,150,36,32],paint:g=>{boxes(g,14,158,20,24);boxes(g,32,150,18,32);boxes(g,18,146,14,12)}});
+ P(r2,{sort:182,solid:[292,176,6,6],paint:g=>{R(g,294,140,2,42,'#a9b0b4');R(g,288,138,14,4,'#c9d0d4');R(g,284,150,10,10,'#2f9a5a');R(g,288,152,2,6,'#fff');R(g,286,154,6,2,'#fff');R(g,290,176,10,6,'#7a8288')}});
+ r2.spots=[{x:60,y:82},{x:160,y:86},{x:250,y:80},{x:250,y:140},{x:80,y:136},{x:200,y:150},{x:120,y:160}];
+ HS(r2,{name:'Regal: angesetzte Lösungen',r:[12,8,84,52],look:()=>'Angesetzte Lösungen. Etiketten in drei Handschriften. Meine ist die schönste. Nur so nebenbei.',verb:()=>'Flasche nehmen',act:regalAct});
+ HS(r2,{name:'Schlüsselbrett',r:[100,10,20,22],look:()=>'Drei Schlüssel. Die Anhänger: Ag, Au, Pb. Wer beschriftet Schlüssel mit Elementsymbolen? Ach so. Wir.',verb:()=>'Schlüssel nehmen',act:keyAct});
+ HS(r2,{name:'Giftschrank',r:[124,6,36,56],look:()=>'Der Giftschrank. Abgeschlossen, beschriftet, alphabetisch sortiert. Patricks Meisterwerk.',verb:()=>'Öffnen',act:()=>sayF('Brauch ich heute nicht. Und Patrick würde es merken. Er merkt alles.')});
+ HS(r2,{name:'Schrank „Oxidationsmittel“',r:[166,6,38,56],look:()=>S.flags.chemOpen?'Offen. Wasserstoffperoxid wohnt hier.':'Chemikalienschrank „Oxidationsmittel“, mit Zahlenschloss. Auf dem Post-it: „Code geändert! Ordnungszahl Kalium, dann Ordnungszahl Iod. – P.B.“',verb:()=>S.flags.chemOpen?(has('h2o2')?null:'H₂O₂ nehmen'):'Code eingeben',act:chemAct});
+ HS(r2,{name:'Abzug mit Versuch',r:[214,8,90,54],look:()=>'Ein angesetzter Versuch. Zettel: „Alaun-Kristallzucht, NICHT ANFASSEN, seit Juni“. Das ist kein Versuch mehr, das ist ein Mitbewohner.',verb:()=>'Anfassen',act:()=>sayF('Da steht NICHT ANFASSEN. Ich halte mich an Schilder. Meistens.')});
+ HS(r2,{name:'Stapel',r:[100,96,48,20],look:()=>has('anleitung')?'Kaffeetassen, unkorrigierte Klausuren der 8b, ein Brötchen mit eigenem Ökosystem.':'Ein Stapel. Kaffeetassen, Klausuren der 8b (nicht meine), ein Brötchen mit eigenem Ökosystem. Da guckt was Rotes raus …',verb:()=>'Durchwühlen',act:stapelAct});
+ HS(r2,{name:'iPad',r:[149,101,15,12],look:()=>'Ein iPad. Mit Glitzerhülle. Adrians, vermute ich.',verb:()=>'Benutzen',act:()=>sayF('Ein iPad. Kein USB-A, kein Windows, kein Surface Pen. Ich respektiere es. Aus der Ferne.')});
+ HS(r2,{name:'Kaliumpermanganat',r:[168,98,10,14],look:()=>'Kaliumpermanganat-Lösung. Schönes Lila. Steht natürlich offen auf dem Tisch.',verb:()=>'Nehmen',act:()=>sayF('KMnO₄ macht auch Schaum, aber das ist ein anderer Versuch. Nächste Woche! Ich schreib’s mir auf.')});
+ HS(r2,{name:'Trockenhefe',r:[182,102,14,10],look:()=>'Trockenhefe. Katalysator für die Schülervariante mit 3 %igem H₂O₂. Enzym Katalase, ganz harmlos.',verb:()=>'Nehmen',act:()=>sayF('Die Hefe-Version machen die Schüler nächste Woche selbst. Heute gibt’s die große Lehrerversion!')});
+ HS(r2,{name:'Kaffeemaschine',r:[202,88,20,24],look:()=>'Eine Kaffeemaschine. In der Chemikaliensammlung. Essen und Trinken in Räumen mit Gefahrstoffen: verboten. Steht in der RiSU. Die Maschine ist an.',verb:()=>'Benutzen',act:()=>sayF('Kaffee neben dem Giftschrank? Nicht mit mir. Wenn Patrick das sieht, gibt’s eine Fortbildung. Für alle.')});
+ HS(r2,{name:'Arbeitstisch',r:[92,94,136,32],look:()=>'Der Arbeitstisch. Hier sollte man arbeiten. Man stapelt.'});
+ HS(r2,{name:'Kartons',r:[14,146,36,36],look:()=>'Kartons: „Fachschaft Chemie – Weihnachtsdeko“.',verb:()=>'Öffnen',act:()=>sayF('Lametta, ein Erlenmeyerkolben als Christbaumkugel und ein Rentier mit Schutzbrille. Ich liebe diese Fachschaft.')});
+ HS(r2,{name:'Notdusche',r:[284,138,22,44],look:()=>'Not- und Augendusche. Zuletzt geprüft: angeblich letzte Woche. Von Patrick. Also wirklich letzte Woche.',verb:()=>'Benutzen',act:()=>sayF('Nur im Notfall. Und den will ich heute nicht haben.')});
+ HS(r2,{name:'Tür zum Flur',r:[140,180,28,12],look:()=>'Die Flurtür der Sammlung. Dahinter: Doros Weg ins Beratungsbüro.',verb:()=>'Rausgehen',act:()=>sayF('Nicht jetzt. Erst der Schaum, dann die Welt.')});
+
+ /* ---------- Materialraum ---------- */
+ addRoom('material',{name:'Materialraum',short:'Material',left:'sammlung',right:'cr2',flurX:60,seed:37,floor:'grey'});
+ const r3=ROOMS.material;
+ P(r3,{sort:62,solid:[12,46,60,16],paint:g=>{R(g,12,0,2,62,'#7d8489');R(g,70,0,2,62,'#7d8489');for(const by of [10,26,42,58])R(g,12,by,60,2,'#9aa1a6');
+   if(!has('wanne')){R(g,22,3,36,7,'#d9dde0');R(g,24,4,32,4,'#b3babe');R(g,22,3,36,1,'#eef1f3')}
+   boxes(g,16,16,16,10);boxes(g,36,18,14,8);boxes(g,52,14,16,12);bottle(g,18,34,'#e9eef0');bottle(g,24,34,'#e9eef0');boxes(g,34,32,30,10);boxes(g,16,48,22,10);boxes(g,42,50,24,8);R(g,12,62,60,2,'rgba(0,0,0,.16)')}});
+ P(r3,{sort:64,solid:[78,56,12,8],paint:g=>{for(let i=0;i<40;i++){R(g,78+(i/10|0),22+i,1,1,'#b2875a');R(g,88+(i/10|0),22+i,1,1,'#b2875a')}for(let y=28;y<62;y+=7)R(g,79+((y-22)/10|0),y,10,1,'#a17749');R(g,84,40,6,4,'#d62d2d')}});
+ P(r3,{sort:62,solid:[96,46,36,16],paint:g=>cabinet(g,96,8,36,54,{label:'47',open:S.flags.s47,inner:g=>{for(let i=0;i<5;i++)R(g,100+i*6,26,4,5,'rgba(200,230,240,.85)');for(let i=0;i<3;i++){R(g,101+i*8,36,6,7,'rgba(200,230,240,.85)');R(g,103+i*8,33,2,3,'rgba(200,230,240,.85)')}outline(g,100,46,26,10,'#9aa1a6')}})});
+ P(r3,{sort:62,solid:[136,46,36,16],paint:g=>cabinet(g,136,8,36,54,{label:'79',sign:'brille',open:S.flags.s79,inner:g=>{if(!has('schutz')){R(g,140,24,12,4,'#2f6fb5');R(g,141,25,4,2,'#bfe3f2');R(g,147,25,4,2,'#bfe3f2');R(g,156,22,10,7,'#5b8de0')}R(g,140,36,24,8,'#f2f2ee');R(g,140,48,24,6,'#e9b23a')}})});
+ P(r3,{sort:62,solid:[176,46,36,16],paint:g=>cabinet(g,176,8,36,54,{label:'82',open:S.flags.s82,inner:g=>{for(let i=0;i<6;i++)R(g,180+i*4,24,3,10,['#7a5a8a','#5a7a8a','#8a7a5a'][i%3]);R(g,182,38,18,7,'#2a2a2e')}})});
+ P(r3,{sort:62,solid:[220,46,84,16],paint:g=>{R(g,220,26,84,36,'#bfc6ca');R(g,220,26,84,4,'#d3d9dc');outline(g,220,26,84,36,'#4b545b');
+   for(let i=0;i<3;i++){const dx=222+i*27,open=i===1&&S.flags.drawer;R(g,dx,32+(open?4:0),25,26,open?'#d0d6d9':'#aab2b7');outline(g,dx,32+(open?4:0),25,26,'#5c656c');R(g,dx+9,44+(open?4:0),7,2,'#3a4046');R(g,dx+6,35+(open?4:0),13,4,'#f4f4f0');
+    if(open&&!has('farbe')){R(g,dx+3,34,3,5,'#d83b4f');R(g,dx+8,34,3,5,'#f2c43a');R(g,dx+13,34,3,5,'#2f7fd1');R(g,dx+18,34,3,5,'#3fae5a')}}
+   R(g,220,62,84,2,'rgba(0,0,0,.16)')}});
+ P(r3,{sort:136,solid:[132,118,44,16],paint:g=>{R(g,132,112,44,16,'#9aa4ab');R(g,132,112,44,2,'#c3cbd0');outline(g,132,112,44,16,'#4b545b');R(g,132,128,44,4,'#6b757c');R(g,134,132,4,4,'#222');R(g,170,132,4,4,'#222');
+   R(g,138,96,2,16,'#6b757c');R(g,136,111,8,2,'#6b757c');R(g,150,98,2,14,'#6b757c');R(g,148,111,8,2,'#6b757c');R(g,160,104,6,8,'#3f6fb0');R(g,166,106,8,3,'#f2d23a');R(g,166,106,2,2,'#7a6a2a')}});
+ P(r3,{sort:182,solid:[236,150,64,32],paint:g=>{boxes(g,236,158,26,24);boxes(g,262,152,22,30);boxes(g,284,160,16,22);boxes(g,244,146,16,12)}});
+ P(r3,{sort:150,solid:[30,132,40,14],paint:g=>{R(g,30,128,40,12,'#a8743f');R(g,30,128,40,1,'#c99258');R(g,30,140,40,4,'#7a5230');R(g,36,129,12,8,'#f4f2ec');R(g,37,130,10,1,'#c23b3b');R(g,50,130,12,7,'#f4f2ec');R(g,52,132,6,1,'#c23b3b');R(g,62,131,2,6,'#d62d2d')}});
+ r3.spots=[{x:110,y:82},{x:200,y:84},{x:260,y:80},{x:100,y:160},{x:200,y:150},{x:50,y:160},{x:290,y:120}];
+ HS(r3,{name:'Hohes Regal',r:[12,0,60,62],look:()=>has('wanne')?'Oben ist jetzt Platz. Patrick hat nicht mal die Arme gestreckt.':'Ganz oben: eine Auffangwanne. Ganz oben. Wer stellt die da hin? Ich hab da eine Ahnung, sie ist 2,10 m groß.',verb:()=>has('wanne')?null:'Wanne nehmen',act:()=>{if(needRead())return;setFlag('sawWanne');sayF('Zu hoch. Mit 1,80 m komm ich im Leben weit. Aber nicht bis dahin. Ich kenn aber jemanden …')}});
+ HS(r3,{name:'Leiter',r:[76,20,16,44],look:()=>'Eine Leiter. Zettel: „DEFEKT – nicht benutzen!“. Datum: 2019.',verb:()=>'Benutzen',act:()=>sayF('Mit DEFEKT-Zettel? Ich will heute Schüler begeistern, nicht den Notarzt.')});
+ HS(r3,{name:'Schrank 47',r:[96,8,36,54],look:()=>'Schrank 47. Nicht abgeschlossen. Glasgeräte.',verb:()=>S.flags.s47?'Schließen':'Öffnen',act:()=>{setFlag('s47',!S.flags.s47);blip(200,.08);if(S.flags.s47){setFlag('saw47');sayF('Bechergläser, Erlenmeyerkolben … das Fach „Messzylinder 250 mL“: leer. Irgendwer hat ihn „ausgeliehen“.')}}});
+ HS(r3,{name:'Schrank 79',r:[136,8,36,54],look:()=>S.flags.s79?'Offen. Schutzausrüstung, wie es sich gehört.':'Schrank 79, abgeschlossen. Blaues Gebotsschild: Schutzbrille tragen.',verb:()=>S.flags.s79?(has('schutz')?null:'Nehmen'):'Öffnen',act:s79Act});
+ HS(r3,{name:'Schrank 82',r:[176,8,36,54],look:()=>'Schrank 82. Abgeschlossen. Etikett: „Altakten“.',verb:()=>S.flags.s82?'Schließen':'Öffnen',act:()=>{if(S.flags.s82){setFlag('s82',false);return}if(S.key==='pb'){setFlag('s82');blip(300,.1);sayF('Altakten von 1998 und eine Kassette „Chemie-AG Weihnachtsfeier“. Zu. Sofort wieder zu.')}else sayF(S.key?'Passt nicht.':'Abgeschlossen. Altakten. Da will ich auch gar nicht rein.')}});
+ HS(r3,{name:'Schubladenschrank',r:[220,26,84,36],look:()=>'Drei Schubladen: „Spatel“, „Diverses“, „Pipetten“.',verb:()=>'Durchsuchen',act:drawerAct});
+ HS(r3,{name:'Rollwagen',r:[132,94,44,40],look:()=>'Ein Rollwagen: zwei Stative, ein Bunsenbrenner ohne Schlauch und eine Banane. Die Banane ist das Einzige hier ohne Etikett.',verb:()=>'Schieben',act:()=>sayF('Drei Räder wollen nach links, eins will nach Hause.')});
+ HS(r3,{name:'Korrekturtisch',r:[30,126,40,18],look:()=>'Britta korrigiert hier. Rotstift, Kaffeefleck, viele Fragezeichen am Rand.'});
+ HS(r3,{name:'Kartons',r:[236,146,64,36],look:()=>'Kartons mit Nachfüllpacks. Und einer mit „NICHT ÖFFNEN – Hausmeister“.',verb:()=>'Öffnen',act:()=>sayF('„Nicht öffnen – Hausmeister“. Diesen Konflikt such ich mir heute nicht aus.')});
+ HS(r3,{name:'Tür zum Flur',r:[60,180,28,12],look:()=>'Flurtür. Doro rennt hier gefühlt alle zwei Minuten durch.',verb:()=>'Rausgehen',act:()=>sayF('Draußen ist Pausenaufsicht-Gebiet. Ich bleib bei meinem Schaum.')});
+
+ /* ---------- Chemieraum 2 ---------- */
+ addRoom('cr2',{name:'Chemieraum 2',short:'Chemie 2',left:'material',flurX:200,seed:53,floor:'lino'});
+ const r4=ROOMS.cr2;
+ P(r4,{sort:-1,paint:g=>fenster(g,16,6,56,22,true)});
+ P(r4,{sort:-1,paint:g=>{tafel(g,104,6,112,30,9,true);R(g,112,10,1,22,'rgba(236,236,226,.6)')}});
+ P(r4,{sort:64,solid:[244,46,60,18],paint:g=>{R(g,244,30,60,16,'#e6e9e4');for(let x=244;x<304;x+=6)R(g,x,30,1,16,'#c5cbc6');R(g,244,46,60,8,'#b8c0c6');R(g,250,47,40,6,'#8d969c');R(g,268,40,2,6,'#c9d1d6');R(g,266,40,6,2,'#c9d1d6');R(g,244,54,60,10,'#6f7f8d');R(g,244,54,60,1,'#93a1ad');R(g,274,55,1,9,'#56636f');R(g,244,64,60,2,'rgba(0,0,0,.16)');
+   if(!has('zylinder')){R(g,258,28,5,20,'rgba(210,235,245,.9)');R(g,259,28,2,20,'#eef8fc');for(let y=31;y<46;y+=3)R(g,258,y,2,1,'#5d7c8c');R(g,256,47,9,2,'#9fbecd')}
+   if(!has('spuelmittel')){R(g,286,36,2,2,'#e9e9e9');R(g,284,38,6,10,'#3fae5a');R(g,285,39,2,8,'#7fd590');R(g,284,43,6,2,'#f2cf63')}}});
+ P(r4,{sort:66,solid:[218,50,26,16],paint:g=>{kanister(g,218,48,'#e8892a');kanister(g,231,48,'#3fae5a')}});
+ P(r4,{sort:72,solid:[112,56,96,16],paint:g=>{tdesk(g,112,54,96);if(!has('gbu')){R(g,122,56,14,6,'#f4f2ec');R(g,123,55,14,6,'#fbfaf5');R(g,125,57,8,1,'#a2342f')}else{R(g,123,56,12,5,'#fbfaf5')}}});
+ for(const by of [100,136]){P(r4,{sort:by+16,solid:[28,by+2,104,14],paint:g=>bench(g,28,by,104)});P(r4,{sort:by+16,solid:[188,by+2,104,14],paint:g=>bench(g,188,by,104)})}
+ r4.seats=seatsFor(r4,[128,164],[54,106,214,266]);
+ P(r4,{sort:182,solid:[272,170,34,12],paint:g=>{R(g,272,164,34,14,'#a8743f');R(g,272,164,34,1,'#c99258');R(g,272,178,34,4,'#7a5230');R(g,274,182,2,2,'#4a3018');R(g,302,182,2,2,'#4a3018');
+   for(let i=0;i<8;i++)for(let j=0;j<4;j++)if((i+j)%2)R(g,281+i*2,165+j*2,2,2,'#3a2a1a');else R(g,281+i*2,165+j*2,2,2,'#efe2c4');
+   R(g,283,165,1,1,'#fff');R(g,291,167,1,1,'#fff');R(g,286,169,1,1,'#111');R(g,293,171,1,1,'#111');R(g,289,166,1,2,'#fff')}});
+ r4.spots=[{x:80,y:84},{x:200,y:84},{x:160,y:86},{x:262,y:76},{x:60,y:80}];
+ HS(r4,{name:'Fenster',r:[16,6,56,24],look:()=>'Patricks Fenster. Er kommt an den Kippgriff ohne Stuhl. Neid ist keine chemische Reaktion, aber exotherm.'});
+ HS(r4,{name:'Tafel',r:[104,6,112,32],look:()=>'Patricks Tafel: die Redoxreihe, mit Lineal gezogen. Darunter: „Organische Reste → Kanister!“, dreimal unterstrichen.'});
+ HS(r4,{name:'Entsorgungskanister',r:[217,44,27,22],look:()=>'Zwei Kanister: „Organisch, halogenfrei“ und „Anorganisch, Schwermetallfrei“. Patrick hat sie beschriftet. Laminiert. Doppelt.',verb:()=>'Benutzen',act:()=>sayF('Ich hab nichts zu entsorgen. Noch nicht. Patrick würde mir aber trotzdem gern erklären, wie.')});
+ HS(r4,{name:'Spüle',r:[244,40,60,24],look:()=>(!has('zylinder')?'Da! MEIN 250-mL-Messzylinder. In Patricks Spüle. ':'')+(!has('spuelmittel')?'Und eine Flasche Spülmittel.':'Leer.')});
+ HS(r4,{name:'Messzylinder (250 mL)',r:[255,26,11,24],show:()=>!has('zylinder'),look:()=>'Mein Messzylinder. Hoch, schmal, perfekt für Schaum.',verb:()=>'Nehmen',act:()=>{if(needRead())return;give('zylinder','Komm, Großer. Heute hast du deinen großen Auftritt.');if(!has('gbu'))later(900,()=>say(patrick,'Ey! Der … ach, nimm ihn. War eh deiner.'))}});
+ HS(r4,{name:'Spülmittel',r:[282,34,10,16],show:()=>!has('spuelmittel'),look:()=>'Spülmittel. Für den Schaum unverzichtbar. Tenside fangen den Sauerstoff ein.',verb:()=>'Nehmen',act:()=>{if(needRead())return;give('spuelmittel','Spülmittel. Ausgeliehen. Wie mein Messzylinder. Karma.')}});
+ HS(r4,{name:'Patricks Pult',r:[112,54,96,18],look:()=>has('gbu')?'Patricks Pult. Ordentlicher als meins. Respekt.':'Patricks Pult. Darauf ein Stapel Vordrucke: „Gefährdungsbeurteilung“.',verb:()=>has('gbu')?null:'Vordruck nehmen',act:()=>sayF('Einfach nehmen? Patrick guckt. Von oben. Ich frag ihn lieber.')});
+ HS(r4,{name:'Schachbrett',r:[272,162,34,20],look:()=>'Brune gegen Lauber. Laut Zettel ist Lars Lauber am Zug. Seit drei Wochen.',verb:()=>'Dame ziehen',act:()=>sayF('Ich zieh doch nicht für Lars. Am Ende gewinnt er, und ich bin schuld.')});
+ HS(r4,{name:'Tür zum Flur',r:[200,180,28,12],look:()=>'Flurtür von Raum 2.',verb:()=>'Rausgehen',act:()=>sayF('Nicht jetzt. Erst der Schaum, dann die Welt.')});
+
+ for(const id in ROOMS){const rm=ROOMS[id];rm.solids=rm.props.filter(p=>p.solid).map(p=>p.solid);rm.bg=document.createElement('canvas');rm.bg.width=W;rm.bg.height=H;paintBg(rm.bg.getContext('2d'),rm)}
+}
+
+function paintBg(g,rm){const fl=rm.floor==='grey'?['#a4a79e','#9a9d94','#8a8d84']:['#9fa98d','#96a084','#87917a'];const r=mkRng(rm.seed);
+ R(g,0,0,W,H,fl[0]);for(let ty=FT;ty<FB;ty+=24)for(let tx=8;tx<312;tx+=24)if(((tx+ty)/24|0)%2)R(g,tx,ty,24,24,fl[1]);
+ for(let ty=FT;ty<FB;ty+=24)R(g,8,ty,304,1,fl[2]);for(let tx=8;tx<312;tx+=24)R(g,tx,FT,1,FB-FT,fl[2]);
+ for(let i=0;i<300;i++)R(g,8+r()*304|0,FT+r()*(FB-FT)|0,1,1,r()<.5?shade(fl[0],1.1):shade(fl[0],.85));
+ R(g,0,0,W,4,'#4b4438');R(g,0,4,W,24,'#d7ccae');for(let i=0;i<40;i++)R(g,r()*W|0,4+r()*24|0,2,1,'#cfc3a3');
+ R(g,0,28,W,14,'#e6e9e4');for(let x=0;x<W;x+=6)R(g,x,28,1,14,'#c5cbc6');for(let y=28;y<42;y+=5)R(g,0,y,W,1,'#c5cbc6');R(g,0,42,W,4,'#6d6558');R(g,8,46,304,2,'rgba(0,0,0,.12)');
+ R(g,0,0,8,H,'#a39880');R(g,312,0,8,H,'#a39880');R(g,7,0,1,H,'#7b715d');R(g,312,0,1,H,'#7b715d');R(g,0,184,W,8,'#a39880');R(g,0,184,W,1,'#7b715d');
+ for(const side of ['left','right'])if(rm[side]){const x=side==='left'?0:312;R(g,x,DY0,8,DY1-DY0,fl[1]);R(g,x,DY0-2,8,2,'#5b4a3a');R(g,x,DY1,8,2,'#5b4a3a');R(g,side==='left'?8:310,DY1+2,2,26,'#8a5a34')}
+ if(rm.flurX!=null){R(g,rm.flurX,184,28,8,'#7a4f2e');R(g,rm.flurX,184,28,1,'#4a2f1a');R(g,rm.flurX+22,187,2,2,'#d8c27a')}}
+
+/* ================= Entities ================= */
+function mkEnt(o){return Object.assign({dir:'down',anim:0,moving:false,path:null,timer:2+Math.random()*5,state:'sit',sit:false,cls:'s',asked:new Set(),talks:0},o)}
+const AMB=['Wann ist Pause?','Wer hat mein Lineal?!','Machen wir heute was mit Feuer?','Lohnt sich das, wenn ich jetzt aufpasse?','Boah, der sucht schon wieder was.','Kommt das in der Arbeit dran?','Ich hab Hunger.','Die 9c hat gesagt, heute wird’s krass.','Ich schwör, ich war das nicht.','Kann man den Schaum essen?','Ey, gib mal Kaugummi.','Herr Jansen hat ein Surface. Wie mein Opa.'];
+const AMB2=['Herr Brune, Sie kommen doch ans Fenster, oder?','Ist das der Elefantenzahnpasta-Lehrer?','Redoxreihe … ich guck sie mir nur an.','Herr Jansen sucht was, wetten?'];
+const PAT_AMB=['Organische Reste in den Kanister „organisch, halogenfrei“! Nicht ins Waschbecken!','Wer mit Lösungsmitteln arbeitet: Abzug! Nicht daneben, DRUNTER!','Deckel drauf! Lösungsmittel verdunsten nicht freiwillig zurück.','Schutzbrille ist kein Haarreif, Noah.','Wer hat den Abzug ohne Frontschieber laufen lassen?'];
+const DORO_AMB=['Wo ist denn mein Ordner?!','Ich muss gleich wieder rüber ins Beratungsbüro!','Drei Gespräche vor der großen Pause. Wer plant so was?','Ich versteh nicht, wie der Schüler überhaupt so weit kommen konnte.','Das haben die doch schon letztes Jahr gemacht!'];
+const BRITTA_AMB=['Der versteht ja gar nix.','Rotstift leer. Natürlich.','Das haben die doch schon letztes Jahr gemacht.','Früher hatten die Schüler wenigstens ein Federmäppchen.','„pH-Wert in Litern“. Ich kann nicht mehr.'];
+const ADRIAN_AMB=['Hat jemand das WLAN-Passwort für die Sammlung?','Die Alaun-Kristalle im Abzug wachsen echt gut!','Florian! Ah, später.','Ich hab ein Video von der Kristallzucht im Zeitraffer. Willst du sehen?'];
+const WANDER=['Ich hol mir nur kurz was.','Nur Taschentuch!','Ich guck mal aus dem Fenster.','Ich muss mal kurz …'];
+const BLOCK=['Ey, Herr Jansen!','’tschuldigung!','Sie stehen im Weg!','Ups.'];
+const SK=['#f1c9a5','#e0ac83','#c68c62','#8d5a3b','#f5d2b8'];
+function student(name,room,seat,look,lines,desc){const L=Object.assign({h:22,tw:8,pants:'#2e3a52',shoes:'#ededed'},look);return mkEnt({name,room,seat,x:seat.x,y:seat.y,sit:true,dir:'up',look:L,lines,li:0,desc,cls:'s',kind:'student'})}
+function adult(o){return mkEnt(Object.assign({sit:false,state:'idle',timer:2+Math.random()*3,kind:'adult',cls:'a'},o))}
+
+function newGame(){
+ S={papers:[],litter:{},flags:{},inv:[],key:null,room:'cr1',started:false,busy:false,modal:false,t0:0,quips:0,amb:6,visited:{cr1:true}};
+ seq=null;timers=[];foam=null;trans=null;shakeT=0;clearBubbles();for(const k in tags){tags[k].remove();delete tags[k]}
+ buildRooms();
+ player=mkEnt({name:'Florian',full:'Florian Jansen',x:144,y:96,dir:'up',look:LOOK_FLORIAN,cls:'',room:'cr1',state:'player',kind:'player'});
+ patrick=adult({name:'Patrick',role:'Patrick Brune · Chemie · Gefahrstoffbeauftragter',x:200,y:86,look:LOOK_PATRICK,cls:'p',room:'cr2',amb:PAT_AMB,speed:26});
+ doro=adult({name:'Doro',role:'Doro Degraa · Chemie · Beratungsbüro',x:250,y:140,look:LOOK_DORO,room:'sammlung',amb:DORO_AMB,speed:48,mode:'idle',hectic:true,count:0});
+ britta=adult({name:'Britta',role:'Dr. Britta Mensing · Chemie',x:50,y:152,look:LOOK_BRITTA,room:'material',amb:BRITTA_AMB,speed:22,home:{x:50,y:150}});
+ adrian=adult({name:'Adrian',role:'Adrian Hoffmann · Chemie & Biologie',x:156,y:136,look:LOOK_ADRIAN,room:'sammlung',amb:ADRIAN_AMB,speed:30,home:{x:156,y:134}});
+ const s1=ROOMS.cr1.seats,s4=ROOMS.cr2.seats;
+ ENTS=[patrick,doro,britta,adrian,
+  student('Leon','cr1',s1[0],{skin:SK[0],hair:'#2b2118',shirt:'#3a3f4a',cap:'#c23b3b'},[['Herr Jansen, machen wir heute was mit Feuer?','Besser: mit Schaum. Ganz viel Schaum. Und Kappe ab, Leon.'],'Ich hab die Kappe nur auf, weil meine Haare … egal.','Kann ich Musik anmachen? Ganz leise?'],'Leon. Mit Kappe. Im Chemieraum. Heute kriegt er eine Chance. Morgen nicht.'),
+  student('Mia','cr1',s1[1],{skin:SK[4],hair:'#d9b36a',long:true,shirt:'#d96a8c'},[['Die 9c hat erzählt, Sie machen heute Schaum! Stimmt das?','Und nicht irgendeinen. Den besten Schaum, den diese Schule je gesehen hat!'],['Ich hab Lebensmittelfarbe zuhause, soll ich die holen?','Lieb von dir, Mia. Aber bis du zurück bist, hast du Abitur.'],'Darf ich nachher filmen? Nur Hände!'],'Mia. Immer bestens informiert. Die 9c ist ein Leck.'),
+  student('Emre','cr1',s1[2],{skin:SK[2],hair:'#16110d',shirt:'#2f7d5b'},['Wann ist Pause?','Ich schwör, ich hab nix angefasst.',['Herr Brune ist doch so groß. Kann der nicht Ihre Sachen suchen?','Emre, das ist … tatsächlich gar keine schlechte Idee.']],'Emre. Schwört grundsätzlich, nichts angefasst zu haben.'),
+  student('Lea','cr1',s1[3],{skin:SK[1],hair:'#7a3b1f',long:true,bun:true,shirt:'#e8d36a'},['Kommt das in der Arbeit dran?',['Wieso haben Sie kein iPad wie Herr Hoffmann?','Weil ein Surface einen richtigen Stift hat, Lea. Und Würde.'],'Herr Jansen, Ihr Kittel ist so weiß. Wie machen Sie das?'],'Lea. Fragt bei allem, ob es in der Arbeit drankommt. Auch beim Feueralarm.'),
+  student('Finn','cr1',s1[4],{skin:SK[0],hair:'#e1c78f',shirt:'#4b6fd1'},['Darf ich aufs Klo?','Darf ich jetzt aufs Klo?',['Und jetzt?','Nein, Finn. Du verpasst sonst das Beste!']],'Finn. Hat eine Blase wie ein Fingerhut. Sagt er.'),
+  student('Aylin','cr1',s1[5],{skin:SK[2],hair:'#1b1410',long:true,shirt:'#7a5bb5'},[['Wasserstoffperoxid, ist das nicht das zum Haare-Bleichen?','Genau, in niedriger Konzentration! Unseres hat 30 %, das verätzt die Haut. Deshalb: Lehrerversuch.'],['Was ist ein Katalysator nochmal?','Ein Stoff, der eine Reaktion beschleunigt, ohne verbraucht zu werden. Gleich siehst du einen in Aktion!'],'Ich will vielleicht Chemie-LK machen.'],'Aylin. Stellt die besten Fragen. Für Schülerinnen wie sie mach ich das hier.'),
+  student('Jonas','cr1',s1[6],{skin:SK[4],hair:'#5a3d26',shirt:'#c95a2b'},['Mein Akku ist leer. Darf ich hier laden?',['Wieso riecht’s hier nach Kaffee?','Frag die Sammlung.'],'Ich hab Hunger.'],'Jonas. Sein Akku ist immer leer. Seiner und der vom Handy.'),
+  student('Hannah','cr1',s1[7],{skin:SK[1],hair:'#a5532c',long:true,shirt:'#3f9cb0'},['Sie suchen schon wieder was, oder?','Soll ich suchen helfen? Ich find immer alles.','Lehrer verlieren echt mehr Sachen als wir.'],'Hannah. Findet immer alles. Leider auch meine Fehler.'),
+  student('Tim','cr2',s4[0],{h:24,skin:SK[0],hair:'#3a2a1c',shirt:'#556b2f'},['Sind Sie der mit der Elefantenzahnpasta?','Herr Brune hat gesagt, Sie finden nie was.'],'Ein Q1-Schüler von Patrick.'),
+  student('Selin','cr2',s4[2],{h:24,skin:SK[3],hair:'#1a1210',long:true,shirt:'#c9465a'},['Wir machen Redox. Also, Herr Brune macht Redox.','Herr Brune hat uns dreimal erklärt, welcher Kanister wofür ist. Heute.'],'Selin, Q1. Schreibt mit. Alles.'),
+  student('Noah','cr2',s4[7],{h:24,skin:SK[2],hair:'#2a1d14',shirt:'#3b4a6b',cap:'#222222'},['Ist das Ihr Messzylinder in der Spüle? Herr Brune hat den „gerettet“.','Ich hab nix gesehen.'],'Noah, Q1. Kappe. Patricks Baustelle.')];
+ for(const n of ENTS){n.hs={name:n.name,npc:n,r:()=>{const t=personTop(n)-9;return[n.x-6,t,12,n.y-t+1]},look:()=>n.desc||descOf(n),verb:()=>'Reden',act:()=>talkTo(n)}}
+ buildGrid();renderHud();updateMap();renderQuest();
+}
+function descOf(n){return{ 'Patrick':'Patrick Brune. 2,10 m. Gefahrstoffbeauftragter. Hat Laminiergerät und Prinzipien.','Doro':'Doro Degraa. Immer auf dem Sprung ins Beratungsbüro. Ihre Jacke hat mehr Taschen als die Sammlung Schränke.','Britta':'Dr. Britta Mensing. Rotstift im Anschlag, Laune im Keller. Weiß aber, wo alles ist.','Adrian':'Adrian Hoffmann. Jung, gut gelaunt, iPad-Fan. Niemand ist perfekt.'}[n.name]}
+
+/* ================= Kollision & Wege ================= */
+const cur=()=>ROOMS[S.room];
+function blockedStatic(x,y,rm=cur()){const l=x-4,r=x+4,t=y-3,b=y+1;if(t<FT||b>FB)return true;const inDoor=t>=DY0&&b<=DY1;
+ if(l<8&&(!inDoor||!rm.left||l<-2))return true;if(r>312&&(!inDoor||!rm.right||r>322))return true;
+ for(const s of rm.solids)if(l<s[0]+s[2]&&r>s[0]&&t<s[1]+s[3]&&b>s[1])return true;return false}
+function blockedDyn(x,y,self){for(const n of ENTS){if(n===self||n.room!==S.room||n.sit||n.hidden)continue;if(Math.abs(n.x-x)<8&&Math.abs(n.y-y)<4)return n}if(self!==player&&Math.abs(player.x-x)<8&&Math.abs(player.y-y)<4)return player;return null}
+function buildGrid(){grid=new Uint8Array(80*48);for(let cy=0;cy<48;cy++)for(let cx=0;cx<80;cx++)grid[cy*80+cx]=blockedStatic(cx*4+2,cy*4+2)?0:1}
+function nearestCell(x,y,filter){let best=-1,bd=1e9;for(let i=0;i<3840;i++){if(!grid[i]||(filter&&!filter(i)))continue;const d=Math.hypot((i%80)*4+2-x,((i/80|0))*4+2-y);if(d<bd){bd=d;best=i}}return best}
+function findPath(e,tx,ty){const s=nearestCell(e.x,e.y);if(s<0)return null;const dist=new Int16Array(3840).fill(-1),prev=new Int16Array(3840).fill(-1),q=new Int16Array(3840);let h=0,t=0;dist[s]=0;q[t++]=s;
+ while(h<t){const i=q[h++],cx=i%80,cy=i/80|0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const nx=cx+dx,ny=cy+dy;if(nx<0||ny<0||nx>=80||ny>=48)continue;const j=ny*80+nx;if(!grid[j]||dist[j]>=0)continue;if(dx&&dy&&(!grid[cy*80+nx]||!grid[ny*80+cx]))continue;dist[j]=dist[i]+1;prev[j]=i;q[t++]=j}}
+ const goal=nearestCell(tx,ty,i=>dist[i]>=0);if(goal<0)return null;const pts=[];let k=goal;while(k!==s&&k>=0){pts.push({x:(k%80)*4+2,y:(k/80|0)*4+2});k=prev[k]}pts.reverse();
+ const out=[];for(let i=0;i<pts.length;i++){if(i>0&&i<pts.length-1){const a=pts[i-1],b=pts[i],cc=pts[i+1];if((b.x-a.x)===(cc.x-b.x)&&(b.y-a.y)===(cc.y-b.y))continue}out.push(pts[i])}return out}
+function setDir(e,dx,dy){if(Math.abs(dx)>Math.abs(dy)+.01)e.dir=dx>0?'right':'left';else if(Math.abs(dy)>.01)e.dir=dy>0?'down':'up'}
+function faceTo(e,x,y){const dx=x-e.x,dy=y-e.y;if(Math.abs(dx)>Math.abs(dy))e.dir=dx>0?'right':'left';else e.dir=dy>0?'down':'up'}
+function followPath(e,dt,sp){if(!e.path||!e.path.length){e.moving=false;return true}const p=e.path[0],dx=p.x-e.x,dy=p.y-e.y,d=Math.hypot(dx,dy),st=sp*dt;
+ if(e!==player&&!e.scripted&&d>0&&blockedDyn(e.x+dx/d*st,e.y+dy/d*st,e)){e.moving=false;e.wait=(e.wait||0)+dt;if(e.wait>1&&!e.complained){e.complained=true;say(e,e.kind==='student'?pick(BLOCK):e===patrick?'Florian, Abstand. Wie beim Abzug.':'Florian, lass mich mal durch!')}if(e.wait>3){e.path=null;return true}return false}
+ e.wait=0;if(d<=st){e.x=p.x;e.y=p.y;e.path.shift()}else{e.x+=dx/d*st;e.y+=dy/d*st}e.moving=true;e.anim+=dt;setDir(e,dx,dy);if(!e.path.length){e.moving=false;return true}return false}
+
+/* ================= Hotspots ================= */
+function rectOf(h){return typeof h.r==='function'?h.r():h.r}
+function hsList(){const rm=cur(),out=[];for(const n of ENTS)if(n.room===S.room&&!n.hidden)out.push(n.hs);for(const h of rm.hs)if(!h.show||h.show())out.push(h);return out}
+function hsAt(x,y){let best=null,ba=1e9;for(const h of hsList()){const [rx,ry,rw,rh]=rectOf(h);if(x>=rx&&x<rx+rw&&y>=ry&&y<ry+rh){const a=h.npc?0:rw*rh;if(a<ba){ba=a;best=h}}}return best}
+function nearHs(){let best=null,bd=1e9;const px=player.x,py=player.y-6;for(const h of hsList()){const [x,y,w,hh]=rectOf(h);const cx=Math.max(x,Math.min(px,x+w)),cy=Math.max(y,Math.min(py,y+hh));let d=Math.hypot(cx-px,cy-py);if(d>16)continue;
+  const ang=Math.atan2(y+hh/2-py,x+w/2-px),fd={right:0,down:Math.PI/2,left:Math.PI,up:-Math.PI/2}[player.dir];let diff=Math.abs(ang-fd);if(diff>Math.PI)diff=2*Math.PI-diff;d+=diff*4;if(h.npc)d-=4;if(d<bd){bd=d;best=h}}return best}
+function lookAt(h){const t=h.look&&h.look();if(t)sayF(t)}
+function primary(h){const v=h.verb&&h.verb();if(v&&h.act)h.act();else lookAt(h)}
+function walkToHs(h,cb){const [x,y,w,hh]=rectOf(h);let tx,ty;if(h.npc){tx=h.npc.x+(player.x<h.npc.x?-11:11);ty=h.npc.y}else{tx=Math.max(x+3,Math.min(player.x,x+w-3));ty=y+hh+5}
+ const done=()=>{faceTo(player,x+w/2,y+hh/2);if(h.npc){h.npc.path=null;h.npc.moving=false;faceTo(h.npc,player.x,player.y)}cb()};
+ const [cx,cy]=[Math.max(x,Math.min(player.x,x+w)),Math.max(y,Math.min(player.y-6,y+hh))];if(Math.hypot(cx-player.x,cy-player.y+6)<15){player.path=null;done();return}
+ if(h.npc&&!h.npc.sit){h.npc.path=null;h.npc.moving=false;h.npc.timer=Math.max(h.npc.timer,4)}
+ const p=findPath(player,tx,ty);player.path=p;player.cb=done;if(!p||!p.length){player.path=null;player.cb=null;done()}}
+
+/* ================= Sprechblasen & Namen ================= */
+function dur(t){return 1500+t.length*48}
+function say(e,text,ms){if(!e)return;const key=e.name;let b=bubbles[key];if(!b){const el=document.createElement('div');el.className='bubble '+(e.cls||'');$('#bubbles').append(el);b=bubbles[key]={el,e}}b.el.textContent=text;b.until=now()+(ms||dur(text));b.e=e;placeBubble(b)}
+function sayF(t){S.quips++;say(player,t)}
+const kNow=()=>stage.clientWidth/W;
+function headY(e){return personTop(e)-(e===player?2:9)}
+function placeBubble(b){const e=b.e;if((e.room!==S.room&&e!==player)||trans||e.hidden){b.el.hidden=true;return}b.el.hidden=false;const k=kNow(),sw=stage.clientWidth;const bw=b.el.offsetWidth,bh=b.el.offsetHeight;
+ const ax=e.x*k;let top=headY(e)*k-18-bh;let down=false;if(top<2){top=(e.y+4)*k+8;down=true}
+ let left=ax-bw/2;left=Math.max(4,Math.min(sw-bw-4,left));b.el.style.transform=`translate(${left}px,${top}px)`;b.el.classList.toggle('down',down);b.el.style.setProperty('--tail',Math.max(10,Math.min(bw-10,ax-left))+'px')}
+function updateBubbles(){const t=now();for(const k in bubbles){const b=bubbles[k];if(t>b.until){b.el.remove();delete bubbles[k];continue}placeBubble(b)}}
+function clearBubbles(){for(const k in bubbles){bubbles[k].el.remove();delete bubbles[k]}}
+function updateTags(){const k=kNow(),vis=new Set();if(!trans&&S.started&&!(foam&&foam.flood>.55)){for(const e of [player,...ENTS]){if(e!==player&&(e.room!==S.room||e.hidden))continue;vis.add(e.name);let el=tags[e.name];
+  if(!el){el=document.createElement('div');el.className='tag '+(e===player?'f':e.kind==='adult'?'a':'s');el.textContent=e.name;$('#tags').append(el);tags[e.name]=el}
+  el.hidden=false;el.style.left=(e.x*k)+'px';el.style.top=(headY(e)*k-1)+'px'}}
+ for(const n in tags)if(!vis.has(n))tags[n].hidden=true}
+
+/* ================= Sequenzen & Auswahl ================= */
+function runSeq(steps,done){S.busy=true;seq={steps,i:0,until:0,done};seqNext()}
+function seqNext(){if(!seq)return;if(seq.i>=seq.steps.length){const d=seq.done;seq=null;S.busy=false;d&&d();return}const st=seq.steps[seq.i++];
+ if(typeof st==='function'){const r=st();if(typeof r==='number'){seq.until=now()+r;return}return seqNext()}
+ const [who,t]=st;const e=who==='F'?player:who==='P'?patrick:who;clearBubbles();say(e,t,dur(t)+300);if(who==='F')S.quips++;seq.until=now()+dur(t)}
+function later(ms,fn){timers.push({at:now()+ms,fn})}
+function showModal(html){$('#sheet').innerHTML=html;$('#modal').hidden=false;S.modal=true;hideVerbs();setTimeout(()=>{const f=$('#sheet').querySelector('button');f&&f.focus()},30)}
+function closeModal(){$('#modal').hidden=true;S.modal=false;$('#sheet').innerHTML='';S.chooseOpts=null}
+function choose(title,opts,sub){showModal(`<div class="board"><h3>${title}</h3>${sub?`<p class="role">${sub}</p>`:''}<div class="choices">${opts.map((o,i)=>`<button data-i="${i}"><b>${i+1}.</b>${o.label}</button>`).join('')}</div></div>`);
+ $('#sheet').querySelectorAll('.choices button').forEach(b=>b.onclick=()=>{const o=opts[+b.dataset.i];closeModal();o.fn&&o.fn()});S.chooseOpts=opts}
+
+/* ================= Dialogbäume ================= */
+function talkTree(n,tree){n.path=null;n.moving=false;faceTo(n,player.x,player.y);
+ const fix=l=>typeof l==='function'?l:[l[0]==='N'?n:l[0],l[1]];
+ const menu=()=>{const all=tree.opts().filter(o=>!(o.once&&n.asked.has(o.t))&&(!o.show||o.show()));const ends=all.filter(o=>o.end);const list=[...all.filter(o=>!o.end).slice(0,4-Math.min(1,ends.length)),...ends.slice(0,1)];
+  choose(n.name,list.map(o=>({label:`„${o.t}“`,fn:()=>{if(o.once)n.asked.add(o.t);runSeq([['F',o.t],...(typeof o.r==='function'?o.r():o.r).map(fix)],()=>{o.after&&o.after();n.talks++;if(o.end||(tree.done&&tree.done())){tree.onEnd&&tree.onEnd();return}menu()})}})),n.role)};
+ runSeq(tree.start().map(fix),menu)}
+function talkTo(n){if(n.kind==='student')return talkStudent(n);if(n===patrick)return talkPatrick();if(n===doro)return talkDoro();if(n===britta)return talkTree(britta,BRITTA_TREE());if(n===adrian)return talkTree(adrian,ADRIAN_TREE())}
+function talkDoro(){if(doro.mode==='leaving'){say(doro,pick(['Nicht jetzt, Florian! Beratungsbüro!','Später! Ich hab gleich ein Gespräch!','Lauf mit, wenn du was willst!']));return}
+ doro.talks=0;talkTree(doro,{start:()=>[['N',pick(['Florian! Ich hab keine Zeit, ich muss gleich wieder ins Beratungsbüro.','Ja? Schnell! Ich hab gleich das nächste Gespräch.','Florian, hast du meinen Ordner gesehen? Nein? Was willst du?'])]],
+  done:()=>doro.talks>=2,onEnd:()=>runSeq([[doro,'So. Ich muss! Beratungsbüro! Tschüss!']],()=>doroLeave('flur')),
+  opts:()=>[
+   {t:'Wie läuft’s im Beratungsbüro?',once:true,r:[['N','Frag nicht. Heute schon drei Gespräche zur Versetzung.'],['N','Ich versteh nicht, wie der Schüler überhaupt so weit kommen konnte.'],['F','Vielleicht braucht er einfach mal einen Versuch, der ihn richtig packt?'],['N','Florian. Du bist süß. Bleib so. Wird aber nicht passieren.']]},
+   {t:'Ich mach heute Elefantenzahnpasta mit der 9a!',once:true,r:[['N','Elefantenzahnpasta? Das haben die doch schon letztes Jahr gemacht.'],['F','Aber nicht bei mir! Bei mir wird’s bunt, mit Streifen!'],['N','Bunt wird’s hier höchstens, wenn der Hausmeister die Rechnung sieht.']]},
+   {t:'Hast du irgendwo eine Auffangwanne gesehen?',once:true,r:[['N','Wannen? Die stellt Patrick immer ganz nach oben. Der kommt ja überall dran.'],['N','Wir Normalsterblichen nicht. Typisch.']]},
+   {t:'Weißt du, wo ich Spülmittel finde?',once:true,r:[['N','Im Lehrerzimmer. Neben der Kaffeemaschine, die keiner sauber macht.'],['F','Das Lehrerzimmer ist zwei Stockwerke weit weg …'],['N','Dann eben nicht! Ich hab auch keine Zeit!']]},
+   {t:'Wie findest du eigentlich die neuen iPads?',once:true,r:[['N','Die Schüler zocken da nur drauf. Der eine versteht ja gar nix, aber Fortnite kann er.'],['F','Mit einem Surface wäre das nicht passiert.'],['N','Mit einer Kreidetafel auch nicht.']]},
+   {t:'Ich lass dich mal weiter. Bis später!',end:true,r:[['N','Ja, ja!']]}]})}
+const BRITTA_TREE=()=>({start:()=>[['N',pick(['Florian. Ich korrigier hier, weil’s im Lehrerzimmer zu laut ist.','Na? Auch auf der Flucht vor der 8b?','Mhm. Was gibt’s?'])]],
+ opts:()=>[
+  {t:'Was korrigierst du da?',once:true,r:[['N','Q1-Klausur, Säure-Base. Einer schreibt, der pH-Wert misst die Säure in Litern.'],['N','Der versteht ja gar nix.'],['F','Immerhin hat er eine Einheit angegeben!'],['N','Du bist mir zu optimistisch für die zweite Stunde.']]},
+  {t:'War früher alles einfacher?',once:true,r:[['N','Früher hatten wir eine Sammlung, in der man was gefunden hat. Und Schüler mit Heft.'],['N','Heute brauchst du für jeden Teelöffel Natron eine Gefährdungsbeurteilung.'],['F','Die schreib ich gern. Sicherheit gehört zum guten Versuch dazu.'],['N','Sagt der, der seine noch nicht geschrieben hat. Patrick hat’s mir erzählt.']]},
+  {t:'Weißt du, wo die Schutzbrillen sind?',once:true,r:[['N','Natürlich. Schrank 79. Abgeschlossen. Der Schlüssel ist der mit dem Gold-Anhänger, weil irgendwer das witzig fand.'],['N','Ich fand’s nicht witzig. Ich finde gar nichts mehr witzig.']]},
+  {t:'Hast du die Lebensmittelfarbe gesehen?',once:true,r:[['N','Nein. Ich benutze keine Lebensmittelfarbe. Ich benutze Rotstift.'],['N','Frag die jungen Leute. Die machen ja ständig „was Buntes“.']]},
+  {t:'Was hältst du von den iPads?',once:true,r:[['N','Meins ist noch eingeschweißt. Die Fortbildung war im Juni.'],['N','Und das haben die doch schon letztes Jahr gemacht. Mit den Laptops. Die stehen jetzt im Keller.'],['F','Mit einem Surface könnte man wenigstens richtig schreiben.'],['N','Mit einem Kugelschreiber auch.']]},
+  {t:'Kann ich dir irgendwie helfen?',once:true,r:[['N','Ja. Nimm die Hälfte der Klausuren.'],['F','Ich … muss jetzt ganz dringend Schaum machen!'],['N','Dachte ich mir.']]},
+  {t:'Bis später, Britta!',end:true,r:[['N','Mhm.']]}]});
+const ADRIAN_TREE=()=>({start:()=>[['N',pick(['Florian! Na, heute große Show?','Moin! Du guckst wie jemand, der was sucht.','Hey! Kurz Zeit?'])]],
+ opts:()=>[
+  {t:'Ich mach heute Elefantenzahnpasta mit der 9a!',once:true,r:[['N','Mega! Soll ich’s mit dem iPad filmen? Slow-Motion!'],['F','Mit dem iPad? Ich hätte da ein Surface …'],['N','Florian. Dein Surface braucht beim Hochfahren länger als die Reaktion.'],['F','Das war EINMAL ein Update!']]},
+  {t:'Hast du zufällig Lebensmittelfarbe?',once:true,r:[['N','Hatte ich letzte Woche für Bio, Chromatographie. Hab sie zurückgelegt.'],['N','Materialraum, Schubladenschrank, die mittlere. Die klemmt übrigens, die braucht zwei Anläufe.'],['F','Du bist ein Schatz.']]},
+  {t:'Hast du meinen 250er Messzylinder gesehen?',once:true,r:[['N','Hm. Heute Morgen ist Patrick mit einem Messzylinder Richtung Raum 2 gelaufen.'],['N','Er sah dabei sehr … korrekt aus.']]},
+  {t:'Wie gefällt dir die Schule bisher?',once:true,r:[['N','Ehrlich? Super. Die Schüler sind wild, aber neugierig.'],['N','Doro und Britta sagen, das bleibt nicht so.'],['F','Bei mir ist es so geblieben. Ich liebe diesen Job immer noch.'],['N','Das merkt man. Du hast bei „Katalysator“ leuchtende Augen.']]},
+  {t:'Wer hat die Kaffeemaschine in die Sammlung gestellt?',once:true,r:[['N','… ich weiß von nichts.'],['N','Patrick darf das NICHT erfahren.'],['F','Er wird es erfahren. Er erfährt alles. Von oben.']]},
+  {t:'Ich muss weiter. Bis gleich!',end:true,r:[['N','Viel Erfolg! Schick mir das Video!']]}]});
+
+/* ================= Spiellogik ================= */
+function give(id,quip){if(!S.inv.includes(id))S.inv.push(id);clack(0,true);ding(.08);toast('+ '+ITEMS[id].n.replace(/­/g,''));renderHud(id);if(quip)sayF(quip)}
+function setKey(k){S.inv=S.inv.filter(i=>!i.startsWith('key_'));S.key=k;if(k)S.inv.push('key_'+k);renderHud(k?'key_'+k:null)}
+function needRead(){if(!S.flags.read){sayF(has('anleitung')?'Erst die Anleitung lesen. Gute Vorbereitung ist die halbe Show!':'Ich weiß ja noch nicht mal genau, was ich brauche. Erst die Anleitung finden.');return true}return false}
+
+function stapelAct(){if(has('anleitung')){sayF('Da gehört mir nichts mehr. Außer vielleicht die Tasse „Bester Lehrer“. Nein, die ist von Dennis. Hat er sich selbst gekauft.');return}
+ runSeq([['F','Drei Kaffeetassen … ein Brötchen von vor den Herbstferien …'],['F','… und hier: MEINE ANLEITUNG! Mit Kaffeerand. Egal, der Tag ist gerettet!'],()=>{give('anleitung');return 400}],()=>openDoc('anleitung'))}
+function regalAct(){if(needRead())return;choose('Welche Flasche?',[
+ {label:'KMnO₄-Lösung, 0,02 mol/L',fn:()=>sayF('Kaliumpermanganat. Wunderschönes Lila. Falscher Versuch.')},
+ {label:'Lugolsche Lösung (Iod-Kaliumiodid)',fn:()=>sayF('Fast. Aber da ist schon Iod drin, das färbt alles braun. Ich will reine Kaliumiodid-Lösung.')},
+ {label:'Kaliumiodid-Lösung, gesättigt',fn:()=>{if(has('ki'))sayF('Hab ich schon. Katalysatoren werden ja nicht verbraucht. Theoretisch.');else give('ki','Kaliumiodid, gesättigt. Der Katalysator. Hallo, mein Freund!')}},
+ {label:'CuSO₄-Lösung',fn:()=>sayF('Kupfersulfat. Blau, giftig für Fische, irrelevant für Elefanten.')},
+ {label:'Braune Flasche ohne Etikett',fn:()=>sayF('Ohne Etikett? Bleibt stehen. Und Patrick kriegt eine Mail. Er wird sich freuen. Ehrlich.')}],'Etiketten in drei Handschriften.')}
+function keyAct(){choose('Welchen Schlüssel nimmst du?',[
+ {label:'Anhänger „Ag“',fn:()=>{setKey('ag');sayF('Silber. Glänzt. Mal sehen, ob’s passt.')}},
+ {label:'Anhänger „Au“',fn:()=>{setKey('au');sayF('Gold. Der wertvollste Schlüssel der Schule. Laut Anhänger.')}},
+ {label:'Anhänger „Pb“',fn:()=>{setKey('pb');sayF('Blei. Wer hängt einen Bleischlüssel ans Brett? Schwermetall-Humor.')}},
+ ...(S.key?[{label:'Schlüssel zurückhängen',fn:()=>{setKey(null);sayF('Zurück an den Haken. Ordnung muss sein.')}}]:[])],'Ein Schlüssel zur Zeit. Sonst ist das Brett leer und alle suchen.')}
+function chemAct(){if(S.flags.chemOpen){if(has('h2o2')){sayF('Den Rest lass ich drin.');return}if(needRead())return;give('h2o2','Die Vorratsflasche Wasserstoffperoxid, 30 %. Ich trag sie wie ein rohes Ei.');return}if(needRead())return;openKeypad()}
+function s79Act(){if(S.flags.s79){if(!has('schutz')){if(needRead())return;give('schutz','Schutzbrille und Handschuhe. Sicherheit zuerst. Sieht auch cool aus.')}return}
+ if(S.key==='au'){setFlag('s79');blip(300,.1);if(S.flags.read)give('schutz','Klick! Gold, Ordnungszahl 79. Brille und Handschuhe: meins.');else sayF('Klick! Offen. Gold hat die 79. Aber was brauch ich überhaupt? Erst die Anleitung.');return}
+ if(S.key==='ag')sayF('Silber passt nicht. 47 ist nicht 79.');else if(S.key==='pb')sayF('Blei? Nee. 82. Das ist der Schrank daneben.');
+ else sayF('Abgeschlossen. Der Schlüssel hängt bestimmt am Schlüsselbrett in der Sammlung. Hoffentlich.')}
+function drawerAct(){choose('Welche Schublade?',[
+ {label:'Schublade „Spatel“',fn:()=>sayF('37 Spatel. Keiner sauber. Einer verbogen wie eine Banane.')},
+ {label:'Schublade „Diverses“',fn:()=>{if(needRead())return;if(S.flags.drawer){if(has('farbe'))sayF('Tacker, Kreide von 1994, ein Radiergummi in Form eines Erlenmeyerkolbens.');else give('farbe','Lebensmittelfarbe! Rot, Gelb, Blau, Grün. Die Streifen sind gerettet!');return}
+   S.drawerTry=(S.drawerTry||0)+1;blip(140,.12,.05,'sawtooth');if(S.drawerTry<2)sayF('Klemmt. Natürlich klemmt die. Nochmal!');else{setFlag('drawer');sayF('Mit Gefühl und Hüfte. Auf!');later(1400,()=>give('farbe','Lebensmittelfarbe! Rot, Gelb, Blau, Grün. Die Streifen sind gerettet!'))}}},
+ {label:'Schublade „Pipetten“',fn:()=>sayF('Zettel: „Wer die letzte Pipette nimmt, bestellt neue.“ Darunter: keine Pipetten.')}])}
+function tischAct(){if(!has('anleitung')){sayF('Was soll ich aufbauen? Ohne Anleitung geht hier gar nichts.');return}if(!S.flags.read){sayF('Erst lesen, dann aufbauen. Sag ich den Schülern auch immer.');return}
+ const miss=NEED.filter(i=>!has(i));if(miss.length){sayF('Fast! Mir fehlt noch: '+miss.map(i=>ITEMS[i].n.replace(/­/g,'')).join(', ')+'.');return}finale()}
+
+function talkStudent(n){const ln=n.lines[n.li++%n.lines.length];faceTo(n,player.x,player.y);n.timer=4;if(Array.isArray(ln))runSeq([[n,ln[0]],['F',ln[1]]]);else say(n,ln)}
+function talkPatrick(){patrick.path=null;patrick.moving=false;faceTo(patrick,player.x,player.y);
+ if(!has('gbu')){const intro=S.flags.metP?[['P','Und? Schon drauf gekommen?']]:[['P','Florian! Schutzbrille ist im Chemieraum Pflicht, auch beim Vorbeigehen. Nur so.'],['F','Heute ist der große Tag! Elefantenzahnpasta mit der 9a!'],['P','Mit 30 %igem Wasserstoffperoxid. Schön.']];setFlag('metP');
+  runSeq([...intro,['P','Sag mal … hast du nicht was vergessen?']],askForgot);return}
+ talkTree(patrick,{start:()=>[['N',pick(['Na, Kollege? Brille auf, wenn du hier rumläufst.','Florian. Hast du die Kanister gesehen? Neu laminiert.','Ja bitte? Kurz, ich hab gleich Abzugskontrolle.'])]],opts:()=>[
+  {t:'Kannst du mir die Wanne vom hohen Regal holen?',once:true,show:()=>S.flags.sawWanne&&!has('wanne'),r:[['N','Sag nichts. Bin gleich wieder da.'],()=>{patrick.hidden=true;clearBubbles();return 2200},()=>{patrick.hidden=false;give('wanne');return 300},['N','Bitte. War nicht mal auf Zehenspitzen.'],['F','Angeber. Danke!']]},
+  {t:'Hast du meinen 250-mL-Messzylinder gesehen?',once:true,show:()=>!has('zylinder'),r:[['N','Der steht bei mir in der Spüle. Ich hab ihn … gerettet. Er stand ungespült in der Sammlung.'],['F','Seit wann?'],['N','Seit den Sommerferien. Nimm ihn ruhig mit. Er ist jetzt sauber.']]},
+  {t:'Was ist der Code vom Oxidationsmittel-Schrank?',once:true,show:()=>!S.flags.chemOpen,r:[['N','Steht doch auf dem Post-it. Ordnungszahl Kalium, dann Iod.'],['N','Du bist der Chemielehrer, Florian.'],['F','Ich teste dich nur.']]},
+  {t:'Wohin mit den Resten nach dem Versuch?',once:true,r:[['N','Schaum mit viel Wasser verdünnt in den Ausguss. Der ist anorganisch.'],['N','Aber ALLES Organische kommt in den Kanister „organisch, halogenfrei“. Halogeniertes in den anderen. Schwermetalle extra.'],['F','Weiß ich doch, Patrick.'],['N','Dann sag’s nochmal. Laut. Für die Q1.']]},
+  {t:'Muss ich den Versuch unter dem Abzug machen?',once:true,r:[['N','Bei der Schaummenge? Passt nicht rein. Großer Labortisch, Auffangwanne, Abstand.'],['N','Aber alles, was dampft, ätzt oder stinkt: Abzug. Immer.'],['N','Und Florian: Die Vorratsflasche H₂O₂ gehört NICHT auf den Labortisch. Nur abfüllen, was du brauchst. Rest zurück in den Schrank.'],['F','Ja, klar. Natürlich.']]},
+  {t:'Was hältst du von den iPads?',once:true,r:[['N','Die haben keine Gefährdungsbeurteilung. Ich trau ihnen nicht.'],['F','Endlich sagt’s mal einer! Surface forever.'],['N','Für das Surface hab ich auch keine.']]},
+  {t:'Wieso spielst du eigentlich Schach mit Lars?',once:true,r:[['N','Weil Lars nie zieht. Ich gewinne nicht, aber ich verliere auch nicht.'],['F','Das ist die traurigste Erfolgsstrategie, die ich je gehört hab.']]},
+  {t:'Danke, ich muss weiter!',end:true,r:[['N',pick(['Viel Erfolg. Und mach nicht wieder die Decke bunt.','Ruf, wenn du was von oben brauchst.','Glück auf, Kollege. Brille auf!'])]]}]})}
+function askForgot(){choose('Patrick fragt: „Hast du nicht was vergessen?“',[
+ {label:'Die Dame auf dem Schachspiel mit Lars Lauber ziehen.',fn:()=>runSeq([['F','Die Dame ziehen! Bei dir und Lars!'],['P','Lars ist am Zug. Seit drei Wochen. Und du spielst nicht mal mit.'],['P','Nochmal. Was hast du vergessen?']],askForgot)},
+ {label:'Dennis G. sagen, wie toll er ist.',fn:()=>runSeq([['F','Dennis G. sagen, wie toll er ist?'],['P','Das weiß Dennis selbst. Erzählt er uns jeden Morgen im Lehrerzimmer.'],['P','Denk nach. Was brauchst du vor einem Lehrerversuch mit 30 %igem H₂O₂?']],askForgot)},
+ {label:'Die Gefährdungsbeurteilung für den Versuch.',fn:()=>runSeq([['F','… die Gefährdungsbeurteilung.'],['P','Genau. Ohne GBU kein 30 %iges Wasserstoffperoxid vor der Klasse.'],['P','Hier, Vordruck. Hab schon angefangen. Unterschreiben musst du selbst.'],()=>{give('gbu');return 500},['F','Danke, Patrick! Ehrlich.'],['P','Und bevor du fragst: organische Reste in den Kanister. Nicht ins Waschbecken.']])}],'Patrick Brune · Gefahrstoffbeauftragter')}
+
+/* ================= Doro-Logik (pendelt zwischen den Zwischenräumen) ================= */
+const DORO_ROOMS=['sammlung','material'];
+function entryPoint(room,via){const rm=ROOMS[room];if(via==='flur')return{x:rm.flurX+14,y:180};if(via==='left')return{x:12,y:118};return{x:308,y:118}}
+function doroLeave(kind){const n=doro;const rm=ROOMS[n.room];let target,tx,ty;
+ if(kind==='flur'){target='away';tx=rm.flurX+14;ty=183}else{target=n.room==='sammlung'?'material':'sammlung';if(n.room==='sammlung'){tx=318;ty=118}else{tx=2;ty=118}}
+ n.mode='leaving';n.exitTo=target;n.exitVia=kind;if(n.room===S.room){n.path=findPath(n,tx,ty);if(!n.path||!n.path.length)arriveExit(n)}else arriveExit(n)}
+function arriveExit(n){n.path=null;n.moving=false;if(n.exitTo==='away'){n.room='away';n.timer=14+Math.random()*12}else{const from=n.room;n.room=n.exitTo;placeAt(n,n.exitTo,from==='sammlung'?'left':'right')}n.mode=n.room==='away'?'away':'idle';n.count=0}
+function placeAt(n,room,via){const p=entryPoint(room,via);n.x=p.x;n.y=p.y;n.timer=.2;n.mode='idle';if(room===S.room){n.path=findPath(n,...Object.values(pick(ROOMS[room].spots)));n.mode='walk';if(Math.random()<.7)later(300,()=>say(n,pick(['Bin gleich wieder weg!','Ordner, Ordner, Ordner …','Hat jemand meinen Schlüssel gesehen?!','Nicht ansprechen, ich bin im Stress!'])))}else n.timer=8+Math.random()*8}
+function updDoro(n,dt){n.timer-=dt;
+ if(n.room==='away'){if(n.timer<=0)placeAt(n,pick(DORO_ROOMS),'flur');return}
+ if(n.room!==S.room){if(n.timer<=0){if(Math.random()<.45){n.exitTo='away';arriveExit(n)}else{const to=n.room==='sammlung'?'material':'sammlung';const via=n.room==='sammlung'?'left':'right';n.room=to;placeAt(n,to,via)}}return}
+ if(n.mode==='leaving'){if(followPath(n,dt,n.speed))arriveExit(n);return}
+ if(n.mode==='walk'){if(followPath(n,dt,n.speed)){n.mode='idle';n.timer=1.5+Math.random()*3;n.dir=pick(['down','left','right'])}return}
+ if(n.timer<=0){n.count=(n.count||0)+1;if(n.count>=3||Math.random()<.25)doroLeave(Math.random()<.55?'flur':'side');else{n.path=findPath(n,...Object.values(pick(cur().spots)));n.mode='walk'}}}
+
+/* ================= Keypad ================= */
+let code='';
+function openKeypad(){code='';showModal(`<div class="board kp"><h3>Zahlenschloss</h3><p>Post-it: „Code geändert! Ordnungszahl Kalium, dann Ordnungszahl Iod. – P.B.“</p><div class="kpd" id="kpd"></div><div class="kgrid">${[1,2,3,4,5,6,7,8,9,'C',0,'OK'].map(k=>`<button data-k="${k}">${k}</button>`).join('')}</div><p class="note" style="margin-top:10px">Esc schließt das Schloss.</p></div>`);
+ renderCode();$('#sheet').querySelectorAll('.kgrid button').forEach(b=>b.onclick=()=>keyIn(b.dataset.k))}
+function renderCode(){const el=$('#kpd');if(!el)return;el.innerHTML=[0,1,2,3].map(i=>`<span>${code[i]||'·'}</span>`).join('')}
+function keyIn(k){if(k==='C'){code='';blip(200,.05)}else if(k==='OK'){checkCode();return}else if(code.length<4){code+=k;blip(880,.03,.03)}renderCode();if(code.length===4)setTimeout(checkCode,180)}
+function checkCode(){if(!$('#kpd'))return;if(code==='1953'){blip(523,.08);setTimeout(()=>blip(784,.14),90);closeModal();setFlag('chemOpen');later(200,()=>sayF('1953! Kalium 19, Iod 53. Patrick, du wunderbarer Nerd. Offen!'))}
+ else{const el=$('#kpd');el.classList.remove('bad');void el.offsetWidth;el.classList.add('bad');blip(110,.2,.05,'sawtooth');const was=code;code='';setTimeout(renderCode,350);
+  if(was==='1234')later(10,()=>sayF('1234 war’s natürlich nicht. Patrick hat Prinzipien.'));else if(was==='5319')later(10,()=>sayF('Falsch rum. Erst Kalium, dann Iod.'))}}
+
+/* ================= Dokumente ================= */
+function openDoc(which){if(which==='anleitung'){showModal(`<div class="paper"><div class="ring"></div>
+ <h3>Elefantenzahnpasta</h3><p class="meta">Lehrerversuch · Fachschaft Chemie, Otto-Hahn-Gymnasium Herne · Seite 1/1</p>
+ <h4>Prinzip</h4><p>Wasserstoffperoxid zerfällt, katalysiert durch Iodid-Ionen, sehr schnell zu Wasser und Sauerstoff. Das Spülmittel fängt den Sauerstoff in feinen Bläschen ein. Eine warme Schaumsäule schießt aus dem Zylinder.</p>
+ <div class="eq">2 H₂O₂ → 2 H₂O + O₂ &nbsp;(exotherm)</div>
+ <p style="font-size:18px;color:#555">Katalyse vereinfacht: H₂O₂ + I⁻ → H₂O + IO⁻ &nbsp;·&nbsp; H₂O₂ + IO⁻ → H₂O + O₂ + I⁻</p>
+ <h4>Geräte</h4><ul><li>Messzylinder 250 mL (hoch und schmal)</li><li>große Auffangwanne</li><li>Schutzbrille, Schutzhandschuhe, Kittel</li></ul>
+ <h4>Chemikalien</h4><ul><li>50 mL Wasserstoffperoxid-Lösung, w = 30 % &nbsp;<span class="warn">Gefahr · GHS05, GHS07 · H302, H318</span></li><li>ca. 10 mL Kaliumiodid-Lösung, gesättigt</li><li>ca. 5 mL Spülmittel</li><li>Lebensmittelfarbe, einige Tropfen</li></ul>
+ <h4>Durchführung</h4><ol><li>Messzylinder mittig in die Auffangwanne stellen.</li><li>Mit Schutzbrille und Handschuhen 50 mL H₂O₂ (30 %) einfüllen. Vorratsflasche danach sofort verschließen und wegstellen.</li><li>Spülmittel zugeben. Lebensmittelfarbe an der Innenwand herunterlaufen lassen (gibt Streifen), nicht umrühren.</li><li>Kaliumiodid-Lösung zügig in einem Guss zugeben und sofort zurücktreten.</li></ol>
+ <h4>Beobachtung & Nachweis</h4><p>Der Schaum steigt schlagartig auf, ist warm und durch Spuren von Iod leicht gelblich. Glimmspanprobe am Schaum: Der Span glüht hell auf, also Sauerstoff.</p>
+ <h4>Sicherheit & Entsorgung</h4><p>Nur als Lehrerversuch. Schüler auf Abstand. Der Schaum enthält H₂O₂-Reste und ist heiß: nicht anfassen. Vorher Gefährdungsbeurteilung erstellen. Reste mit viel Wasser verdünnt in den Ausguss.</p>
+ <p style="font-size:18px;color:#555">Schülervariante (Ersatzstoff): 3 %iges H₂O₂ mit Trockenhefe, Katalysator ist dann das Enzym Katalase.</p>
+ <div class="row"><button class="btn" id="docOk">Gelesen</button></div></div>`);
+ $('#docOk').onclick=()=>{closeModal();if(!S.flags.read){setFlag('read');renderHud();runSeq([['F','Acht Sachen fehlen noch. Das wird großartig!'],['F','Die Liste hab ich jetzt oben links im Kopf. Und im Blick.']])}}}
+ else if(which==='gbu'){showModal(`<div class="paper"><h3>Gefährdungsbeurteilung</h3><p class="meta">Lehrerversuch „Elefantenzahnpasta“ · Vordruck Fachschaft Chemie</p>
+ <h4>Tätigkeit</h4><p>Katalytische Zersetzung von Wasserstoffperoxid (w = 30 %) mit Kaliumiodid, Demonstration vor Klasse 9.</p>
+ <h4>Gefahrstoffe</h4><ul><li>Wasserstoffperoxid 30 %: Gefahr, GHS05 ätzend, GHS07; H302, H318</li><li>Kaliumiodid-Lösung, Spülmittel, Lebensmittelfarbe</li></ul>
+ <h4>Gefährdungen</h4><p>Schwere Augenschäden und Hautreizung durch H₂O₂, heißer Schaum (exotherm), Sauerstoff wirkt brandfördernd.</p>
+ <h4>Ersatzstoffprüfung</h4><p>Schülervariante mit 3 % H₂O₂ und Hefe möglich. Für die Demonstration bewusst 30 % als Lehrerversuch.</p>
+ <h4>Schutzmaßnahmen</h4><p>Schutzbrille, Handschuhe, Kittel. Auffangwanne. Schüler auf Abstand. Schaum nicht berühren. Vorratsflasche nicht am Versuchsplatz. Keine offenen Flammen außer Glimmspan.</p>
+ <p class="sig">„Unterschreiben, Florian!! Und: Vorratsflasche WEG vom Tisch!“ – P.B.</p><div class="row"><button class="btn" id="docOk">Zur Kenntnis</button></div></div>`);$('#docOk').onclick=closeModal}}
+
+/* ================= Finale ================= */
+function finale(){setFlag('setup');for(const n of ENTS)if(n.room==='cr1'&&n.kind==='student'){n.path=null;n.x=n.seat.x;n.y=n.seat.y;n.sit=true;n.state='sit';n.dir='up';n.moving=false}
+ const st=nm=>ENTS.find(n=>n.name===nm);player.dir='up';
+ runSeq([['F','So, 9a! Alle Augen nach vorne. Heute machen wir Chemie, die ihr nie vergesst!'],['F','Wanne, Messzylinder, Brille auf, Handschuhe an. 50 mL Wasserstoffperoxid … Spülmittel … Farbe am Rand runter …'],[st('Mia'),'Darf ich jetzt filmen?'],['F','Jetzt der Katalysator: Kaliumiodid. Drei, zwei, eins …'],
+  ()=>{foam={t:0,parts:[],hm:new Float32Array(W),flood:0,flooding:false,boost:0};blip(90,.6,.06,'sawtooth');return 2300},[st('Emre'),'BOAAAH!'],[st('Leon'),'Herr Jansen, das ist so krass!'],
+  ['F','Und das ist Sauerstoff! Zwei H₂O₂ werden zu zwei H₂O und O₂, und Iodid ist der Katalysator …'],
+  ()=>{doro.room='cr1';doro.hidden=false;doro.scripted=true;doro.mode='finale';doro.x=308;doro.y=118;S.room==='cr1'&&(doro.path=findPath(doro,206,94));return 1300},
+  [doro,'Florian! Hast du meinen Schlüssel fürs Beratungsbüro gesehen?! Ich hab gleich —'],
+  ()=>{shakeT=.6;setFlag('tipped');blip(70,.5,.07,'sawtooth');return 700},
+  ['F','Doro, VORSICHT, die Vorratsflasche!'],[doro,'Ups.'],
+  ()=>{foam.flooding=true;foam.boost=1;blip(60,1.2,.07,'sawtooth');return 1700},
+  [st('Finn'),'AAAAH! Darf ich JETZT aufs Klo?!'],[st('Hannah'),'Herr Jansen, der Schaum ist warm!'],
+  ['F','Alle raus auf den Flur! Nicht in den Schaum fassen, da ist noch Wasserstoffperoxid drin!'],
+  ()=>{patrick.room='cr1';patrick.hidden=false;patrick.scripted=true;patrick.x=308;patrick.y=120;patrick.path=findPath(patrick,270,100);return 900},
+  ['P','FLORIAN! Hab ich nicht gesagt: Vorratsflasche NICHT auf den Labortisch?!'],
+  [doro,'Ich … muss dann mal ins Beratungsbüro.'],[st('Aylin'),'Bester. Chemieunterricht. Ever.'],()=>2600],showWin)}
+const FOAMC=['#f06aa8','#ffffff','#fff3f8','#6fd6c6','#ffd36b','#ffffff','#b48ef0'];
+function updateFoam(dt){if(!foam)return;foam.t+=dt;const rate=foam.boost?16:(foam.t<3.2?7:0);
+ for(let k=0;k<rate;k++)foam.parts.push({x:144+(Math.random()-.5)*3,y:40,vx:(Math.random()-.5)*(foam.boost?140:46),vy:-(40+Math.random()*(foam.boost?140:70)),r:2+(Math.random()*(foam.boost?3:2)|0),c:pick(FOAMC),stuck:false});
+ for(const p of foam.parts){if(p.stuck)continue;p.vy+=150*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;if(p.x<4||p.x>316||p.y<-20){p.stuck=true;continue}const xi=p.x|0,onT=p.x>76&&p.x<212,ground=(onT?62:100)-foam.hm[xi];
+  if(p.vy>0&&p.y>=ground){p.y=ground;p.stuck=true;for(let i=-2;i<=2;i++)if(xi+i>=0&&xi+i<W)foam.hm[xi+i]+=p.r*.18*(3-Math.abs(i))/3}}
+ if(foam.parts.length>2400)foam.parts.splice(0,foam.parts.length-2400);
+ if(foam.flooding)foam.flood=Math.min(1.15,foam.flood+dt*.11)}
+function drawFoam(g){if(!foam)return;if(foam.t<3.6||foam.boost){const hgt=foam.boost?Math.min(40,26+Math.sin(T*9)*6+14):Math.min(26,foam.t*40);R(g,140,40-hgt,9,hgt,'#fff4f9');for(let y=40-hgt;y<40;y+=4)R(g,140,y|0,9,2,(((y/4)|0)%3===0)?'#f06aa8':(((y/4)|0)%3===1)?'#6fd6c6':'#ffd36b')}
+ for(const p of foam.parts)R(g,p.x|0,p.y-p.r|0,p.r,p.r,p.c)}
+function drawFlood(g){if(!foam||foam.flood<=0)return;const lvl=foam.flood*H;const bands=['#f6a6c9','#ffffff','#9fe6da','#ffe39a','#f06aa8','#ffffff','#c9b2f5'];
+ for(let x=0;x<W;x+=3){const top=H-lvl+Math.sin(x*.09+T*2.4)*4+Math.sin(x*.23-T*1.7)*2.5;for(let y=Math.max(0,top|0);y<H;y+=3){const bi=((y+x*.4+T*10)/11|0)%bands.length;R(g,x,y,3,3,bands[(bi+bands.length)%bands.length])}R(g,x,Math.max(0,top|0),3,1,'#ffffff')}
+ const r=mkRng(7);for(let i=0;i<60;i++){const bx=r()*W|0,by=(H-lvl+r()*lvl+Math.sin(T+i)*3)|0;if(by>0){R(g,bx,by,2,2,'rgba(255,255,255,.9)');R(g,bx+2,by+1,1,1,'rgba(160,140,190,.6)')}}}
+function showWin(){const t=Math.round((now()-S.t0)/1000),mm=String(t/60|0).padStart(2,'0'),ss=String(t%60).padStart(2,'0');
+ showModal(`<div class="board"><h3>Level 1 geschafft … irgendwie</h3><p>Florian hatte alles beisammen, Patrick hatte (leider) recht, und Chemieraum 1 steht bis zur Decke in rosa-türkisem Schaum. Die 9a wird bis zum Abitur davon reden.</p>
+ <div class="stats"><div><b>${mm}:${ss}</b><span>Spielzeit</span></div><div><b>${S.quips}</b><span>Sprüche von Florian</span></div><div><b>9/9</b><span>Materialien</span></div></div>
+ <p class="note">Level 2 „Schaumalarm“: Der Raum muss sauber sein, bevor die Schulleitung um die Ecke biegt. Mit Patricks Kanistern, Doros Schlüssel und sehr vielen Eimern.</p><div class="btnrow" style="margin-top:12px"><button class="btn" id="lvl2Btn">Weiter zu Level 2</button><button class="btn ghost" id="againBtn">Nochmal spielen</button><button class="btn ghost" id="stayBtn">Schaum angucken</button></div></div>`);
+ $('#againBtn').onclick=()=>{closeModal();newGame();startGame()};$('#stayBtn').onclick=closeModal;
+ $('#lvl2Btn').onclick=()=>showModal(`<div class="board"><h3>Level 2: Schaumalarm</h3><p>Ist in Arbeit. Florian steht bis zu den Knien im Schaum, Patrick verteilt Schutzbrillen, und Doro sucht immer noch ihren Schlüssel.</p><div class="btnrow"><button class="btn" id="backBtn">Zurück</button></div></div>`)||($('#backBtn').onclick=showWin)}
+
+/* ================= HUD & Quest ================= */
+function goalText(){if(!S.started)return'Spiel starten.';if(!has('anleitung'))return S.flags.hint?'Finde die Anleitung. Laut Post-it irgendwo in der Sammlung.':'Finde die Versuchsanleitung. Dein Pult ist verdächtig leer.';
+ if(!S.flags.read)return'Lies die Anleitung (im Inventar anklicken).';const miss=NEED.filter(i=>!has(i));if(miss.length)return`Sammle die Materialien: ${NEED.length-miss.length} von ${NEED.length}`;return S.flags.setup?'Schaum. Überall Schaum.':'Alles da! Ab zum großen Labortisch in Chemieraum 1.'}
+function tipText(){if(!has('anleitung'))return S.flags.hint?'Sammlung, nebenan. Wetten, die liegt unter einem Stapel?':'Auf meinem Pult klebt doch was Gelbes …';
+ if(!S.flags.read)return'Anleitung im Inventar anklicken und lesen.';if(!has('gbu'))return'Patrick wollte mich was fragen. Chemieraum 2, ganz rechts.';
+ if(!has('h2o2'))return'Schrank mit Zahlenschloss in der Sammlung. Ordnungszahlen stehen auf dem PSE in meinem Raum.';if(!has('ki'))return'Kaliumiodid: Regal mit den angesetzten Lösungen.';
+ if(!has('schutz'))return S.key?'Schrank 79 im Materialraum. Passt der Schlüssel zur 79?':'Schrank 79 ist abgeschlossen. Kollegen wissen bestimmt, welcher Schlüssel passt.';
+ if(!has('farbe'))return'Lebensmittelfarbe … hat die nicht kürzlich jemand für Bio benutzt?';if(!has('zylinder'))return'Mein Messzylinder ist weg. Wer „rettet“ hier ständig Glasgeräte?';
+ if(!has('spuelmittel'))return'Spülmittel steht an jeder Spüle. Patrick hat eine.';if(!has('wanne'))return S.flags.sawWanne?'Für das hohe Regal brauche ich jemanden Großes.':'Auffangwannen: Materialraum. Meistens weit oben.';
+ return S.flags.setup?'Raus aus dem Schaum! Weiter geht’s in Level 2.':'Alles da! Ab zum großen Labortisch!'}
+function tip(){sayF(tipText())}
+function renderQuest(){if(!S||!S.started){$('#quest').hidden=true;return}$('#quest').hidden=false;let title,items;
+ if(!has('anleitung')){title='Die verschwundene Anleitung';items=[{ok:false,t:'Versuchsanleitung finden'}]}
+ else if(!S.flags.read){title='Die verschwundene Anleitung';items=[{ok:true,t:'Versuchsanleitung finden'},{ok:false,t:'Anleitung lesen'}]}
+ else if(!S.flags.setup){const miss=NEED.filter(i=>!has(i));title=miss.length?`Material sammeln (${NEED.length-miss.length}/${NEED.length})`:'Bereit für die Show!';items=NEED.map(i=>({ok:has(i),t:ITEMS[i].n.replace(/­/g,'')}));if(!miss.length)items.push({ok:false,t:'Am großen Labortisch aufbauen'})}
+ else{title='Level 1 geschafft';items=[{ok:true,t:'Versuch durchgeführt'},{ok:false,t:'Raum entschäumen (Level 2)'}]}
+ $('#qTitle').textContent=title;$('#qList').innerHTML=items.map(i=>`<li class="${i.ok?'ok':''}"><i>${i.ok?'✓':'□'}</i><span>${i.t}</span></li>`).join('');$('#qHint').textContent='Hinweis: '+tipText()}
+function renderHud(fresh){const inv=$('#inv');inv.innerHTML='';const list=S.flags.read?NEED.slice():NEED.filter(has);for(const k of S.inv)if(k.startsWith('key_'))list.push(k);
+ for(const id of list){const own=has(id),b=document.createElement('button');b.className='slot'+(own?'':' miss')+(id===fresh?' new':'');b.title=ITEMS[id].n.replace(/­/g,'');
+  const cvs=document.createElement('canvas');cvs.width=16;cvs.height=16;const g=cvs.getContext('2d');if(own)(ICON[id]||ICON.key)(g);else{R(g,5,4,6,2,'#7d9488');R(g,9,6,2,3,'#7d9488');R(g,7,9,2,2,'#7d9488');R(g,7,12,2,2,'#7d9488')}
+  const sp=document.createElement('span');sp.textContent=ITEMS[id].n;b.append(cvs,sp);if(own)b.onclick=()=>{if(S.busy||!S.started)return;if(id==='anleitung'||id==='gbu')openDoc(id);else sayF(ITEMS[id].d)};else b.disabled=true;inv.append(b)}
+ if(!list.length){const p=document.createElement('span');p.className='note';p.textContent='Inventar leer. Noch.';inv.append(p)}
+ $('#goal').textContent=goalText();renderQuest()}
+function updateMap(){const order=['cr1','sammlung','material','cr2'];$('#map').innerHTML=order.map(id=>`<div class="${id===S.room?'on':''}">${ROOMS[id].short}</div>`).join('')}
+let toastT=0;function toast(t){const el=$('#toast');el.textContent=t;el.hidden=false;el.style.opacity=1;clearTimeout(toastT);toastT=setTimeout(()=>{el.style.opacity=0;setTimeout(()=>el.hidden=true,400)},1600)}
+let tagT=0;function roomTag(){const el=$('#roomTag');el.textContent=cur().name;el.hidden=false;el.style.opacity=1;clearTimeout(tagT);tagT=setTimeout(()=>{el.style.opacity=0},2200)}
+$('#qToggle').onclick=()=>{const b=$('#qBody');b.hidden=!b.hidden;$('#qArrow').textContent=b.hidden?'▸':'▾';$('#qToggle').setAttribute('aria-expanded',String(!b.hidden))};
+
+/* ================= Eingabe ================= */
+const keys={};
+addEventListener('keydown',e=>{if(!$('#modal').hidden){if(e.key==='Escape'&&!$('#docOk')&&!S.chooseOpts){closeModal()}else if($('#kpd')){if(/^[0-9]$/.test(e.key))keyIn(e.key);else if(e.key==='Backspace'){code=code.slice(0,-1);renderCode()}else if(e.key==='Enter')checkCode()}else if(S.chooseOpts&&/^[1-9]$/.test(e.key)){const b=$('#sheet').querySelector(`.choices button[data-i="${+e.key-1}"]`);b&&b.click()}return}
+ if(!S.started)return;const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();
+ if(S.busy){if(k===' '||k==='enter'||k==='e'){if(seq)seq.until=0}return}
+ keys[k]=true;if(k==='e'||k===' '||k==='enter'){const h=nearHs();if(h){hideVerbs();if(h.npc){h.npc.path=null;faceTo(h.npc,player.x,player.y)}primary(h)}}else if(k==='q'){const h=nearHs();if(h)lookAt(h)}});
+addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
+function gpos(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H,cx:e.clientX-r.left,cy:e.clientY-r.top}}
+cv.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse')return;const m=gpos(e);hoverHs=S.started&&!S.busy?hsAt(m.x,m.y):null});
+cv.addEventListener('pointerleave',()=>{hoverHs=null});
+cv.addEventListener('pointerdown',e=>{if(!S.started||S.modal)return;const p=gpos(e);if(S.busy){if(seq)seq.until=0;return}
+ if(!$('#verbs').hidden){hideVerbs();return}
+ if(Math.abs(p.x-player.x)<6&&p.y<player.y+1&&p.y>personTop(player)){sayF(pick(['Florian Jansen. Chemielehrer aus Leidenschaft. Kittel weiß, Surface geladen.','Das bin ich. Bereit, eine ganze Klasse für Chemie zu begeistern.','Ich. 1,80 m Motivation. Neben Patrick wirke ich wie ein Reagenzglas.']));return}
+ const h=hsAt(p.x,p.y);if(h)openVerbs(h,p.cx,p.cy);else{player.path=findPath(player,p.x,p.y);player.cb=null}});
+function openVerbs(h,cx,cy){const v=$('#verbs');v.innerHTML='';const head=document.createElement('div');head.className='vh';head.textContent=h.name;v.append(head);
+ const add=(label,fn)=>{const b=document.createElement('button');b.textContent=label;b.onclick=ev=>{ev.stopPropagation();hideVerbs();walkToHs(h,fn)};v.append(b)};
+ const vb=h.verb&&h.verb();if(vb)add(vb,()=>h.act());add('Ansehen',()=>lookAt(h));v.hidden=false;
+ const sw=stage.clientWidth,sh=stage.clientHeight,bw=v.offsetWidth,bh=v.offsetHeight;v.style.left=Math.max(4,Math.min(sw-bw-4,cx+8))+'px';v.style.top=Math.max(4,Math.min(sh-bh-4,cy-bh/2))+'px';v.querySelector('button').focus({preventScroll:true})}
+function hideVerbs(){$('#verbs').hidden=true}
+$('#tipBtn').onclick=()=>{if(S.started&&!S.busy&&!S.modal)tip()};
+$('#sndBtn').onclick=()=>{SND=!SND;$('#sndBtn').textContent='Ton: '+(SND?'an':'aus')};
+$('#modal').addEventListener('pointerdown',e=>{if(e.target.id==='modal'&&$('#kpd'))closeModal()});
+
+/* ================= Update ================= */
+function update(dt){T+=dt;shakeT=Math.max(0,shakeT-dt);const t=now();for(let i=timers.length-1;i>=0;i--)if(t>=timers[i].at){const f=timers[i].fn;timers.splice(i,1);f()}
+ if(trans){trans.t+=dt/.45;if(trans.t>=1){trans=null;onEnter()}return}
+ if(seq&&t>=seq.until)seqNext();updateFoam(dt);updPapers(dt);
+ for(const n of ENTS)if(n.scripted&&n.path&&n.room===S.room)followPath(n,dt,n===doro?60:40);
+ if(S.started&&!S.busy&&!S.modal){let dx=0,dy=0;if(keys.arrowleft||keys.a)dx-=1;if(keys.arrowright||keys.d)dx+=1;if(keys.arrowup||keys.w)dy-=1;if(keys.arrowdown||keys.s)dy+=1;
+  if(dx||dy){player.path=null;player.cb=null;hideVerbs();const l=Math.hypot(dx,dy),sp=72*dt;const mx=dx/l*sp,my=dy/l*sp;
+   if(mx&&!blockedStatic(player.x+mx,player.y)&&!blockedDyn(player.x+mx,player.y,player))player.x+=mx;
+   if(my&&!blockedStatic(player.x,player.y+my)&&!blockedDyn(player.x,player.y+my,player))player.y+=my;player.moving=true;player.anim+=dt;setDir(player,dx,dy)}
+  else if(player.path){if(followPath(player,dt,76)){player.path=null;const cb=player.cb;player.cb=null;cb&&cb()}}else player.moving=false;
+  const rm=cur();if(player.x<3&&rm.left)go(rm.left,'left');else if(player.x>317&&rm.right)go(rm.right,'right')}
+ else player.moving=false;
+ if(!S.busy&&!S.modal&&S.started){if(!doro.scripted)updDoro(doro,dt);for(const n of ENTS){if(n===doro||n.scripted||n.room!==S.room||n.hidden)continue;if(n.kind==='adult')updAdult(n,dt);else updStudent(n,dt)}
+  S.amb-=dt;if(S.amb<=0){S.amb=6+Math.random()*6;const pool=ENTS.filter(n=>n.room===S.room&&!n.hidden&&!bubbles[n.name]);if(pool.length&&!Object.keys(bubbles).length){const n=pick(pool);say(n,n.amb?pick(n.amb):pick(S.room==='cr2'?AMB2:AMB))}}}
+ $('#goal').textContent=goalText()}
+const IPAD=['Guck mal, das Video!','Ich mach nur Recherche. Ehrlich.','Wieso ist das WLAN so langsam?','Mein iPad hat 3 % Akku.','Ich lern grad! Mit Musik.'];
+const HIT=['Ey!','Wer war das?!','Boah, ernsthaft?','Hör auf!','Volltreffer, Alter.'];
+function updStudent(n,dt){n.timer-=dt;if(n.ipad>0){n.ipad-=dt;n.dir='up'}if(n.timer>0)return;const r=Math.random();
+ if(r<.42){n.dir=pick(['up','up','up','left','right','down']);n.timer=2+Math.random()*4}
+ else if(r<.7){n.ipad=4+Math.random()*7;n.dir='up';n.timer=n.ipad+1;if(Math.random()<.3)say(n,pick(IPAD))}
+ else if(r<.82&&!S.papers.length){throwPaper(n);n.timer=4+Math.random()*4}
+ else n.timer=2+Math.random()*3}
+function throwPaper(n){const others=ENTS.filter(m=>m.kind==='student'&&m.room===n.room&&m!==n);const tgt=Math.random()<.65&&others.length?pick(others):null;
+ const x1=tgt?tgt.x:20+Math.random()*280,y1=tgt?personTop(tgt)+3:FT+30+Math.random()*100;faceTo(n,x1,y1);
+ S.papers.push({room:n.room,x0:n.x,y0:personTop(n)+4,x1,y1,t:0,dur:.75+Math.random()*.3,tgt});clack(0,false,1.6)}
+function updPapers(dt){for(let i=S.papers.length-1;i>=0;i--){const p=S.papers[i];p.t+=dt/p.dur;if(p.t>=1){S.papers.splice(i,1);const lx=Math.max(10,Math.min(310,p.x1+(Math.random()-.5)*10)),ly=Math.max(FT+4,Math.min(FB-2,(p.tgt?p.tgt.y+3:p.y1)));
+  const L=S.litter[p.room]||(S.litter[p.room]=[]);L.push({x:lx|0,y:ly|0});if(L.length>14)L.shift();
+  if(p.room===S.room){if(p.tgt&&Math.random()<.8)say(p.tgt,pick(HIT));if(Math.random()<.35&&!S.busy)later(700,()=>say(player,pick(['Hey! Papierkugeln sind keine Projektile!','Wer wirft hier? Ich seh alles. Fast alles.','Das hebt nachher jemand auf. Und dieser Jemand bist nicht du, Patrick.','Wurfparabel: gut. Benehmen: ungenügend.'])))}}}}
+function updAdult(n,dt){n.timer-=dt;if(n.path){if(followPath(n,dt,n.speed)){n.path=null;n.timer=3+Math.random()*5;n.dir=n.home?'down':(Math.random()<.5?'down':pick(['left','right','up']))}}
+ else if(n.timer<=0){const tgt=n.home&&Math.random()<.55?n.home:pick(cur().spots);n.path=findPath(n,tgt.x,tgt.y);n.complained=false;if(!n.path)n.timer=3}}
+function go(to,side){hideVerbs();player.path=null;player.cb=null;clearBubbles();trans={from:S.room,to,t:0,dir:side==='right'?1:-1};const fromY=player.y;carriage();S.room=to;player.x=side==='right'?12:308;player.y=Math.max(DY0+5,Math.min(DY1-3,fromY));buildGrid();updateMap();
+ if(doro.room===to&&doro.mode!=='away'){doro.path=null;doro.mode='idle';doro.timer=1}}
+function onEnter(){roomTag();
+ if(S.room==='cr2'&&!S.visited.cr2){S.visited.cr2=true;later(400,()=>say(patrick,'Florian! Komm mal her. Und: Brille!'))}
+ if(S.room==='sammlung'&&!S.visited.sammlung){S.visited.sammlung=true;later(300,()=>sayF('Die Sammlung! Hier wohnen die schönsten Chemikalien der Stadt. Und das größte Chaos.'))}
+ if(S.room==='material'&&!S.visited.material){S.visited.material=true;later(300,()=>say(britta,'Tür zu, Florian. Es zieht. Und ich korrigiere.'))}}
+
+/* ================= Render ================= */
+const off1=document.createElement('canvas'),off2=document.createElement('canvas');off1.width=off2.width=W;off1.height=off2.height=H;
+function drawRoom(g,id,withPlayer){const rm=ROOMS[id];g.drawImage(rm.bg,0,0);for(const l of (S.litter[id]||[])){R(g,l.x,l.y,3,2,'#f4f2ea');R(g,l.x+1,l.y,1,1,'#c9c4b4')}const list=[];for(const p of rm.props)list.push([p.sort,()=>p.paint(g)]);
+ const people=ENTS.filter(e=>e.room===id&&!e.hidden);for(const e of people)list.push([e.y+(e.sit?0:.5),()=>drawPerson(g,e)]);if(withPlayer)list.push([player.y+.6,()=>drawPerson(g,player)]);
+ if(id==='cr1'&&foam)list.push([87,()=>drawFoam(g)]);list.sort((a,b)=>a[0]-b[0]);for(const it of list)it[1]();
+ for(const e of people)if(e.ipad>0&&e.seat){const ix=Math.round(e.x)+3,iy=e.seat.y-19;R(g,ix,iy,9,5,'#2b2b2e');R(g,ix+1,iy+1,7,3,(T*4|0)%3?'#6fb4f0':'#9fd7ff');R(g,ix+2,iy+1,2,1,'#f06aa8');R(g,ix-1,iy+4,11,3,'rgba(130,190,255,.18)')}
+ for(const p of S.papers)if(p.room===id){const x=p.x0+(p.x1-p.x0)*p.t,y=p.y0+(p.y1-p.y0)*p.t-Math.sin(Math.PI*p.t)*22;R(g,x|0,y|0,3,3,'#f7f5ee');R(g,(x|0)+1,(y|0)+1,1,1,'#b9b4a6')}
+ if(!(id==='cr1'&&foam&&foam.flood>.2))for(const e of people)talkIcon(g,Math.round(e.x),personTop(e)-7);
+ if(id==='cr1')drawFlood(g)}
+function corners(g,x,y,w,h,col){const l=3;R(g,x,y,l,1,col);R(g,x,y,1,l,col);R(g,x+w-l,y,l,1,col);R(g,x+w-1,y,1,l,col);R(g,x,y+h-1,l,1,col);R(g,x,y+h-l,1,l,col);R(g,x+w-l,y+h-1,l,1,col);R(g,x+w-1,y+h-l,1,l,col)}
+function render(){if(trans){const g1=off1.getContext('2d'),g2=off2.getContext('2d');drawRoom(g1,trans.from,false);drawRoom(g2,trans.to,true);
+  const t=trans.t<.5?2*trans.t*trans.t:1-Math.pow(-2*trans.t+2,2)/2,o=Math.round(t*W);if(trans.dir>0){c.drawImage(off1,-o,0);c.drawImage(off2,W-o,0)}else{c.drawImage(off1,o,0);c.drawImage(off2,o-W,0)}updateTags();updateBubbles();return}
+ c.save();if(shakeT>0)c.translate((Math.random()-.5)*4|0,(Math.random()-.5)*4|0);drawRoom(c,S.room,true);c.restore();
+ if(S.started&&!S.busy&&!S.modal){const blink=(T*3|0)%2?'#f2cf63':'#fff6c8';if(hoverHs){const [x,y,w,h]=rectOf(hoverHs);corners(c,x-1|0,y-1|0,w+2|0,h+2|0,blink)}
+  const nh=nearHs();if(nh&&!nh.npc){const [x,y,w]=rectOf(nh);const ax=x+w/2|0,ay=Math.max(2,y-6+Math.sin(T*6)*1.5|0);R(c,ax-2,ay,5,1,'#f2cf63');R(c,ax-1,ay+1,3,1,'#f2cf63');R(c,ax,ay+2,1,1,'#f2cf63')}
+  const hv=$('#hover');const show=hoverHs||nh;if(show){const vb=show.verb&&show.verb();hv.textContent=hoverHs?hoverHs.name:`${nh.name}  ·  E ${vb||'Ansehen'}  ·  Q Ansehen`;hv.hidden=false}else hv.hidden=true}else $('#hover').hidden=true;
+ updateTags();updateBubbles()}
+
+let last=now();function loop(){const t=now(),dt=Math.min(.05,(t-last)/1000);last=t;update(dt);render();requestAnimationFrame(loop)}
+function fit(){const k=kNow();stage.style.setProperty('--bf',Math.max(15,Math.min(22,k*6.4))+'px');stage.style.setProperty('--tf',Math.max(11,Math.min(17,k*4.6))+'px');stage.style.setProperty('--qf',Math.max(13,Math.min(17,k*5.2))+'px')}
+new ResizeObserver(fit).observe(stage);fit();
+
+function startGame(){$('#title').hidden=true;S.started=true;S.t0=now();if(stage.clientWidth<560){$('#qBody').hidden=true;$('#qArrow').textContent='▸'}renderHud();roomTag();
+ const st=nm=>ENTS.find(n=>n.name===nm);
+ runSeq([['F','Heute zeig ich der 9a Elefantenzahnpasta. Bunter Schaum, alle staunen. Das wird der beste Tag des Halbjahres!'],['F','Ich leg mir nur kurz die Anleitung raus. Die lag doch hier auf dem Pult …'],[st('Hannah'),'Herr Jansen sucht schon wieder was.'],['F','Ich suche nicht. Ich recherchiere!']])}
+$('#startBtn').onclick=()=>{try{AC=AC||new (window.AudioContext||window.webkitAudioContext)()}catch(e){}startGame()};
+
+newGame();requestAnimationFrame(loop);
+})();
+</script>
+
+</body>
+</html>
